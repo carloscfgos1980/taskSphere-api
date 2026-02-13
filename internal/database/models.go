@@ -20,6 +20,25 @@ type RefreshToken struct {
 	RevokedAt sql.NullTime
 }
 
+type Task struct {
+	ID          uuid.UUID
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	UserID      uuid.UUID
+	Title       string
+	EndDate     time.Time
+	Description string
+	Priority    string
+	Tag         string
+	State       string
+	ParentID    uuid.NullUUID
+}
+
+type TaskEditor struct {
+	TaskID   uuid.UUID
+	EditorID uuid.UUID
+}
+
 type User struct {
 	ID        uuid.UUID
 	CreatedAt time.Time

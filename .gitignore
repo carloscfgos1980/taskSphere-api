@@ -1,3 +1,2 @@
 .env
-data_personal.txt
-data_tasks.txt
+data/*
