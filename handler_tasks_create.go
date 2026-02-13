@@ -89,7 +89,7 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 	}
 
 	log.Printf("Creating task for user %s with title %s", userID, params.Title)
-	task, err := cfg.db.CreateTask(r.Context(), database.CreateTaskParams{
+	dbTask, err := cfg.db.CreateTask(r.Context(), database.CreateTaskParams{
 		UserID:      userID,
 		Title:       params.Title,
 		EndDate:     params.EndDate,
@@ -107,7 +107,7 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		log.Printf("Adding %d editors to task", len(params.TaskEditors))
 		for _, editorID := range params.TaskEditors {
 			_, err = cfg.db.CreateTaskEditors(r.Context(), database.CreateTaskEditorsParams{
-				TaskID:   task.ID,
+				TaskID:   dbTask.ID,
 				EditorID: editorID,
 			})
 			if err != nil {
@@ -116,25 +116,25 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 			}
 		}
 	}
-	taskEditors, err := cfg.db.GetTaskEditorsByTaskID(r.Context(), task.ID)
+	dbTaskEditors, err := cfg.db.GetTaskEditorsByTaskID(r.Context(), dbTask.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve task editors", err)
 		return
 	}
 
 	respondWithJSON(w, http.StatusCreated, response{
-		ID:          task.ID,
-		CreatedAt:   task.CreatedAt,
-		UpdatedAt:   task.UpdatedAt,
-		UserID:      task.UserID,
-		Title:       task.Title,
-		EndDate:     task.EndDate,
-		Description: task.Description,
-		Priority:    task.Priority,
-		Tag:         task.Tag,
-		State:       task.State,
-		ParentID:    task.ParentID.UUID,
-		TaskEditors: taskEditors,
+		ID:          dbTask.ID,
+		CreatedAt:   dbTask.CreatedAt,
+		UpdatedAt:   dbTask.UpdatedAt,
+		UserID:      dbTask.UserID,
+		Title:       dbTask.Title,
+		EndDate:     dbTask.EndDate,
+		Description: dbTask.Description,
+		Priority:    dbTask.Priority,
+		Tag:         dbTask.Tag,
+		State:       dbTask.State,
+		ParentID:    dbTask.ParentID.UUID,
+		TaskEditors: dbTaskEditors,
 	})
 }
 
