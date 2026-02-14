@@ -28,6 +28,7 @@ type Task struct {
 }
 
 func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request) {
+	// Define the expected parameters for creating a new task and the response structure
 	type parameters struct {
 		Title       string      `json:"title"`
 		EndDate     time.Time   `json:"end_date"`
@@ -38,6 +39,7 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		ParentID    uuid.UUID   `json:"parent_id,omitempty"`
 		TaskEditors []uuid.UUID `json:"task_editors"`
 	}
+	// Define the response structure for a single task
 	type response struct {
 		ID          uuid.UUID   `json:"id"`
 		CreatedAt   time.Time   `json:"created_at"`
@@ -52,18 +54,19 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		ParentID    uuid.UUID   `json:"parent_id,omitempty"`
 		TaskEditors []uuid.UUID `json:"task_editors"`
 	}
-
+	// Validate the user's authorization to create a new task by checking the provided JWT token
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "No authorization token included", err)
 		return
 	}
-
+	// Validate the JWT token and extract the user ID from it
 	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Invalid authorization token", err)
 		return
 	}
+	// Decode the JSON request body into the parameters struct
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err = decoder.Decode(&params)
@@ -71,6 +74,7 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
+	// Validate the provided parameters for creating a new task (e.g., check if priority, state, tag, and date formats are valid)
 	if err := checkPriority(params.Priority); err != "" {
 		respondWithError(w, http.StatusBadRequest, err, nil)
 		return
@@ -89,6 +93,7 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 	}
 
 	log.Printf("Creating task for user %s with title %s", userID, params.Title)
+	// Create a new task in the database using the provided parameters and the user ID extracted from the JWT token
 	dbTask, err := cfg.db.CreateTask(r.Context(), database.CreateTaskParams{
 		UserID:      userID,
 		Title:       params.Title,
@@ -103,10 +108,12 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create task", err)
 		return
 	}
+	// If task editors are provided in the request, create entries in the database to associate them with the newly created task
+	dbTaskEditors := []uuid.UUID{}
 	if len(params.TaskEditors) > 0 {
 		log.Printf("Adding %d editors to task", len(params.TaskEditors))
 		for _, editorID := range params.TaskEditors {
-			_, err = cfg.db.CreateTaskEditors(r.Context(), database.CreateTaskEditorsParams{
+			_, err := cfg.db.CreateTaskEditors(r.Context(), database.CreateTaskEditorsParams{
 				TaskID:   dbTask.ID,
 				EditorID: editorID,
 			})
@@ -114,14 +121,10 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 				respondWithError(w, http.StatusInternalServerError, "Couldn't create task editors", err)
 				return
 			}
+			dbTaskEditors = append(dbTaskEditors, editorID)
 		}
 	}
-	dbTaskEditors, err := cfg.db.GetTaskEditorsByTaskID(r.Context(), dbTask.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve task editors", err)
-		return
-	}
-
+	// Respond with the created task's information, including its editors
 	respondWithJSON(w, http.StatusCreated, response{
 		ID:          dbTask.ID,
 		CreatedAt:   dbTask.CreatedAt,

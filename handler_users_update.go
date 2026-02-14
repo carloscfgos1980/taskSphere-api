@@ -16,18 +16,19 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 	type response struct {
 		User
 	}
-
+	// Validate the user's authorization to update their information by checking the provided JWT token
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Couldn't find JWT", err)
 		return
 	}
+	// Validate the provided JWT token and extract the user's ID from it
 	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Couldn't validate JWT", err)
 		return
 	}
-
+	// Decode the JSON request body into the parameters struct
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err = decoder.Decode(&params)
@@ -35,13 +36,13 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
-
+	// Hash the user's new password before updating it in the database
 	hashedPassword, err := auth.HashPassword(params.Password)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't hash password", err)
 		return
 	}
-
+	// Update the user's information in the database using the provided parameters and the hashed password
 	user, err := cfg.db.UpdateUser(r.Context(), database.UpdateUserParams{
 		ID:       userID,
 		Email:    params.Email,
@@ -51,7 +52,7 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't update user", err)
 		return
 	}
-
+	// Respond with the updated user's information (excluding the password)
 	respondWithJSON(w, http.StatusOK, response{
 		User: User{
 			ID:        user.ID,

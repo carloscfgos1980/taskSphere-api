@@ -10,6 +10,7 @@ import (
 )
 
 func (cfg *apiConfig) handlerTasksGet(w http.ResponseWriter, r *http.Request) {
+	// Define the response structure for a single task
 	type response struct {
 		ID          uuid.UUID   `json:"id"`
 		CreatedAt   time.Time   `json:"created_at"`
@@ -24,19 +25,20 @@ func (cfg *apiConfig) handlerTasksGet(w http.ResponseWriter, r *http.Request) {
 		ParentID    uuid.UUID   `json:"parent_id,omitempty"`
 		TaskEditors []uuid.UUID `json:"task_editors"`
 	}
-
+	// Extract the task ID from the URL path and validate it
 	taskIDString := r.PathValue("taskID")
 	taskID, err := uuid.Parse(taskIDString)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid task ID", err)
 		return
 	}
-
+	// Retrieve the task from the database using the provided ID
 	dbTask, err := cfg.db.GetTaskByID(r.Context(), taskID)
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "Couldn't get task", err)
 		return
 	}
+	// Retrieve the task editors for the specified task ID
 	dbTaskEditors, err := cfg.db.GetTaskEditorsByTaskID(r.Context(), dbTask.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve task editors", err)
@@ -45,7 +47,7 @@ func (cfg *apiConfig) handlerTasksGet(w http.ResponseWriter, r *http.Request) {
 	if len(dbTaskEditors) == 0 {
 		dbTaskEditors = []uuid.UUID{}
 	}
-
+	// If the task is marked as "private", validate the user's authorization to access it
 	if dbTask.Tag == "private" {
 		token, err := auth.GetBearerToken(r.Header)
 		if err != nil {
@@ -64,7 +66,7 @@ func (cfg *apiConfig) handlerTasksGet(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
+	// Respond with the task details in JSON format
 	respondWithJSON(w, http.StatusOK, response{
 		ID:          dbTask.ID,
 		CreatedAt:   dbTask.CreatedAt,
@@ -81,25 +83,26 @@ func (cfg *apiConfig) handlerTasksGet(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (cfg *apiConfig) handlerTasksGetPrivate(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerTasksGetPersonal(w http.ResponseWriter, r *http.Request) {
+	// Extract the Bearer token from the Authorization header and validate it to get the user ID
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "No authorization token included", err)
 		return
 	}
-
+	// Validate the JWT token and extract the user ID
 	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Couldn't validate JWT", err)
 		return
 	}
-
+	// Retrieve the tasks associated with the user ID from the database
 	dbTasks, err := cfg.db.GetTasksByUserID(r.Context(), userID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get tasks", err)
 		return
 	}
-
+	// Define the response structure for a single task
 	type taskResponse struct {
 		ID          uuid.UUID   `json:"id"`
 		CreatedAt   time.Time   `json:"created_at"`
@@ -114,6 +117,7 @@ func (cfg *apiConfig) handlerTasksGetPrivate(w http.ResponseWriter, r *http.Requ
 		ParentID    uuid.UUID   `json:"parent_id,omitempty"`
 		TaskEditors []uuid.UUID `json:"task_editors"`
 	}
+	// Iterate through the retrieved tasks, get their editors, and build the response array
 	var response []taskResponse
 	for _, dbTask := range dbTasks {
 		dbTaskEditors, err := cfg.db.GetTaskEditorsByTaskID(r.Context(), dbTask.ID)
@@ -142,4 +146,69 @@ func (cfg *apiConfig) handlerTasksGetPrivate(w http.ResponseWriter, r *http.Requ
 	}
 
 	respondWithJSON(w, http.StatusOK, response)
+}
+
+func (cfg *apiConfig) handlerTasksGetCollaborative(w http.ResponseWriter, r *http.Request) {
+	// Extract the parent task ID from the URL path and validate it
+	parentIDString := r.PathValue("parentID")
+	ParentID, err := uuid.Parse(parentIDString)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid task ID", err)
+		return
+	}
+	// Retrieve the collaborative tasks associated with the parent task ID from the database
+	dbGroupTasks, err := cfg.db.GetCollaborativeTasksByParentID(r.Context(), uuid.NullUUID{UUID: ParentID, Valid: true})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get collaborative tasks", err)
+		return
+	}
+	// Define the response structure for a single collaborative task
+	type taskResponse struct {
+		ID          uuid.UUID   `json:"id"`
+		CreatedAt   time.Time   `json:"created_at"`
+		UpdatedAt   time.Time   `json:"updated_at"`
+		UserID      uuid.UUID   `json:"user_id"`
+		Username    string      `json:"username"`
+		Email       string      `json:"email"`
+		Title       string      `json:"title"`
+		EndDate     time.Time   `json:"end_date"`
+		Description string      `json:"description"`
+		Priority    string      `json:"priority"`
+		Tag         string      `json:"tag"`
+		State       string      `json:"state"`
+		ParentID    uuid.UUID   `json:"parent_id,omitempty"`
+		TaskEditors []uuid.UUID `json:"task_editors"`
+	}
+	// Iterate through the retrieved collaborative tasks, get their editors, and build the response array
+	var response []taskResponse
+	for _, dbGroupTask := range dbGroupTasks {
+		taskEditors, err := cfg.db.GetTaskEditorsByTaskID(r.Context(), dbGroupTask.ID)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve task editors", err)
+			return
+		}
+		if len(taskEditors) == 0 {
+			taskEditors = []uuid.UUID{}
+		}
+
+		response = append(response, taskResponse{
+			ID:          dbGroupTask.ID,
+			CreatedAt:   dbGroupTask.CreatedAt,
+			UpdatedAt:   dbGroupTask.UpdatedAt,
+			UserID:      dbGroupTask.UserID,
+			Username:    dbGroupTask.Username,
+			Email:       dbGroupTask.Email,
+			Title:       dbGroupTask.Title,
+			EndDate:     dbGroupTask.EndDate,
+			Description: dbGroupTask.Description,
+			Priority:    dbGroupTask.Priority,
+			Tag:         dbGroupTask.Tag,
+			State:       dbGroupTask.State,
+			ParentID:    dbGroupTask.ParentID.UUID,
+			TaskEditors: taskEditors,
+		})
+	}
+
+	respondWithJSON(w, http.StatusOK, response)
+
 }

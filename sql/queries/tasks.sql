@@ -29,3 +29,9 @@ SELECT editor_id FROM task_editors WHERE task_id = $1;
 -- name: GetTasksByUserID :many
 SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at ASC;
 
+-- name: GetCollaborativeTasksByParentID :many
+SELECT u.email, u.username, t.*
+FROM tasks t
+JOIN users u ON t.user_id = u.id
+WHERE t.parent_id = $1 OR t.id = $1
+ORDER BY t.created_at ASC;

@@ -20,15 +20,17 @@ type User struct {
 }
 
 func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request) {
+	// Define the expected parameters for creating a new user and the response structure
 	type parameters struct {
 		Username string `json:"username"`
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
+	// Define the response structure for a single user
 	type response struct {
 		User
 	}
-
+	// Decode the JSON request body into the parameters struct
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err := decoder.Decode(&params)
@@ -36,19 +38,23 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
-
+	// Hash the user's password before storing it in the database
 	hashedPassword, err := auth.HashPassword(params.Password)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't hash password", err)
 		return
 	}
-
+	// Create a new user in the database using the provided parameters and the hashed password
 	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
 		Username: params.Username,
 		Email:    params.Email,
 		Password: hashedPassword,
 	})
-
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
+		return
+	}
+	// Respond with the created user's information (excluding the password)
 	respondWithJSON(w, http.StatusCreated, response{
 		User: User{
 			ID:        user.ID,
