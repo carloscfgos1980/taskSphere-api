@@ -87,6 +87,15 @@ func (q *Queries) CreateTaskEditors(ctx context.Context, arg CreateTaskEditorsPa
 	return i, err
 }
 
+const deleteTask = `-- name: DeleteTask :exec
+DELETE FROM tasks WHERE id = $1
+`
+
+func (q *Queries) DeleteTask(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteTask, id)
+	return err
+}
+
 const getCollaborativeTasksByParentID = `-- name: GetCollaborativeTasksByParentID :many
 SELECT u.email, u.username, t.id, t.created_at, t.updated_at, t.user_id, t.title, t.end_date, t.description, t.priority, t.tag, t.state, t.parent_id
 FROM tasks t
@@ -235,4 +244,51 @@ func (q *Queries) GetTasksByUserID(ctx context.Context, userID uuid.UUID) ([]Tas
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateTask = `-- name: UpdateTask :one
+UPDATE tasks
+SET title = $2,
+    end_date = $3,
+    description = $4,
+    priority = $5,
+    state = $6,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id
+`
+
+type UpdateTaskParams struct {
+	ID          uuid.UUID
+	Title       string
+	EndDate     time.Time
+	Description string
+	Priority    string
+	State       string
+}
+
+func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, error) {
+	row := q.db.QueryRowContext(ctx, updateTask,
+		arg.ID,
+		arg.Title,
+		arg.EndDate,
+		arg.Description,
+		arg.Priority,
+		arg.State,
+	)
+	var i Task
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.Title,
+		&i.EndDate,
+		&i.Description,
+		&i.Priority,
+		&i.Tag,
+		&i.State,
+		&i.ParentID,
+	)
+	return i, err
 }

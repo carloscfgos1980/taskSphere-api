@@ -64,6 +64,7 @@ func main() {
 	mux.HandleFunc("GET /api/tasks/{taskID}", apiCfg.handlerTasksGet)
 	mux.HandleFunc("GET /api/personal/tasks", apiCfg.handlerTasksGetPersonal)
 	mux.HandleFunc("GET /api/collaborative/tasks/{parentID}", apiCfg.handlerTasksGetCollaborative)
+	mux.HandleFunc("PUT /api/tasks/{taskID}", apiCfg.handlerTasksUpdate)
 
 	srv := &http.Server{
 		Addr:    ":" + port,

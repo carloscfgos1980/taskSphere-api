@@ -35,3 +35,17 @@ FROM tasks t
 JOIN users u ON t.user_id = u.id
 WHERE t.parent_id = $1 OR t.id = $1
 ORDER BY t.created_at ASC;
+
+-- name: UpdateTask :one
+UPDATE tasks
+SET title = $2,
+    end_date = $3,
+    description = $4,
+    priority = $5,
+    state = $6,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: DeleteTask :exec
+DELETE FROM tasks WHERE id = $1;

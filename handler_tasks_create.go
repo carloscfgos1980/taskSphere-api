@@ -75,20 +75,20 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// Validate the provided parameters for creating a new task (e.g., check if priority, state, tag, and date formats are valid)
-	if err := checkPriority(params.Priority); err != "" {
-		respondWithError(w, http.StatusBadRequest, err, nil)
+	if errPriority := CheckPriority(params.Priority); errPriority != "" {
+		respondWithError(w, http.StatusBadRequest, errPriority, nil)
 		return
 	}
-	if err := checkState(params.State); err != "" {
-		respondWithError(w, http.StatusBadRequest, err, nil)
+	if errState := CheckState(params.State); errState != "" {
+		respondWithError(w, http.StatusBadRequest, errState, nil)
 		return
 	}
-	if err := checkTag(params.Tag); err != "" {
-		respondWithError(w, http.StatusBadRequest, err, nil)
+	if errTag := CheckTag(params.Tag); errTag != "" {
+		respondWithError(w, http.StatusBadRequest, errTag, nil)
 		return
 	}
-	if err := checkDateFormat(params.EndDate); err != "" {
-		respondWithError(w, http.StatusBadRequest, err, nil)
+	if errDate := CheckDateFormat(params.EndDate); errDate != "" {
+		respondWithError(w, http.StatusBadRequest, errDate, nil)
 		return
 	}
 
@@ -141,7 +141,7 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-func checkPriority(priority string) (err string) {
+func CheckPriority(priority string) (err string) {
 	switch priority {
 	case "low", "medium", "high", "urgent":
 		return
@@ -150,7 +150,7 @@ func checkPriority(priority string) (err string) {
 	}
 }
 
-func checkState(state string) (err string) {
+func CheckState(state string) (err string) {
 	switch state {
 	case "pending", "in progress", "done", "cancelled":
 		return ""
@@ -159,7 +159,7 @@ func checkState(state string) (err string) {
 	}
 }
 
-func checkTag(tag string) (err string) {
+func CheckTag(tag string) (err string) {
 	switch tag {
 	case "private", "collaborative":
 		return ""
@@ -168,7 +168,7 @@ func checkTag(tag string) (err string) {
 	}
 }
 
-func checkDateFormat(date time.Time) (err string) {
+func CheckDateFormat(date time.Time) (err string) {
 	if date.IsZero() {
 		return "Invalid date format"
 	}
