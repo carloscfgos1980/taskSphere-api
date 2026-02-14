@@ -136,3 +136,42 @@ func (q *Queries) GetTaskEditorsByTaskID(ctx context.Context, taskID uuid.UUID) 
 	}
 	return items, nil
 }
+
+const getTasksByUserID = `-- name: GetTasksByUserID :many
+SELECT id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id FROM tasks WHERE user_id = $1 ORDER BY created_at ASC
+`
+
+func (q *Queries) GetTasksByUserID(ctx context.Context, userID uuid.UUID) ([]Task, error) {
+	rows, err := q.db.QueryContext(ctx, getTasksByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Task
+	for rows.Next() {
+		var i Task
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserID,
+			&i.Title,
+			&i.EndDate,
+			&i.Description,
+			&i.Priority,
+			&i.Tag,
+			&i.State,
+			&i.ParentID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

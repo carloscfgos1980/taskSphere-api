@@ -62,6 +62,7 @@ func main() {
 
 	mux.HandleFunc("POST /api/tasks", apiCfg.handlerTasksCreate)
 	mux.HandleFunc("GET /api/tasks/{taskID}", apiCfg.handlerTasksGet)
+	mux.HandleFunc("GET /api/tasks", apiCfg.handlerTasksGetPrivate)
 
 	srv := &http.Server{
 		Addr:    ":" + port,

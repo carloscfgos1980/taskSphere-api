@@ -80,3 +80,66 @@ func (cfg *apiConfig) handlerTasksGet(w http.ResponseWriter, r *http.Request) {
 		TaskEditors: dbTaskEditors,
 	})
 }
+
+func (cfg *apiConfig) handlerTasksGetPrivate(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "No authorization token included", err)
+		return
+	}
+
+	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't validate JWT", err)
+		return
+	}
+
+	dbTasks, err := cfg.db.GetTasksByUserID(r.Context(), userID)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get tasks", err)
+		return
+	}
+
+	type taskResponse struct {
+		ID          uuid.UUID   `json:"id"`
+		CreatedAt   time.Time   `json:"created_at"`
+		UpdatedAt   time.Time   `json:"updated_at"`
+		UserID      uuid.UUID   `json:"user_id"`
+		Title       string      `json:"title"`
+		EndDate     time.Time   `json:"end_date"`
+		Description string      `json:"description"`
+		Priority    string      `json:"priority"`
+		Tag         string      `json:"tag"`
+		State       string      `json:"state"`
+		ParentID    uuid.UUID   `json:"parent_id,omitempty"`
+		TaskEditors []uuid.UUID `json:"task_editors"`
+	}
+	var response []taskResponse
+	for _, dbTask := range dbTasks {
+		dbTaskEditors, err := cfg.db.GetTaskEditorsByTaskID(r.Context(), dbTask.ID)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve task editors", err)
+			return
+		}
+		if len(dbTaskEditors) == 0 {
+			dbTaskEditors = []uuid.UUID{}
+		}
+
+		response = append(response, taskResponse{
+			ID:          dbTask.ID,
+			CreatedAt:   dbTask.CreatedAt,
+			UpdatedAt:   dbTask.UpdatedAt,
+			UserID:      dbTask.UserID,
+			Title:       dbTask.Title,
+			EndDate:     dbTask.EndDate,
+			Description: dbTask.Description,
+			Priority:    dbTask.Priority,
+			Tag:         dbTask.Tag,
+			State:       dbTask.State,
+			ParentID:    dbTask.ParentID.UUID,
+			TaskEditors: dbTaskEditors,
+		})
+	}
+
+	respondWithJSON(w, http.StatusOK, response)
+}

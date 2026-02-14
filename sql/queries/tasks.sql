@@ -25,3 +25,7 @@ SELECT * FROM tasks WHERE id = $1;
 
 -- name: GetTaskEditorsByTaskID :many
 SELECT editor_id FROM task_editors WHERE task_id = $1;
+
+-- name: GetTasksByUserID :many
+SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at ASC;
+
