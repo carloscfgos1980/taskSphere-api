@@ -12,6 +12,7 @@ import (
 )
 
 func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request) {
+	// Define a struct to hold the parameters for updating the task
 	type parameters struct {
 		Title       string    `json:"title,omitempty"`
 		EndDate     time.Time `json:"end_date,omitempty"`
@@ -19,20 +20,20 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 		Priority    string    `json:"priority,omitempty"`
 		State       string    `json:"state,omitempty"`
 	}
-
+	// Extract the task ID from the URL path
 	taskIDString := r.PathValue("taskID")
 	taskID, err := uuid.Parse(taskIDString)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid task ID", err)
 		return
 	}
-
+	// Get the user ID from the JWT token in the Authorization header
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "No authorization token included", err)
 		return
 	}
-
+	// Validate the JWT token and extract the user ID
 	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Couldn't validate JWT", err)
@@ -45,7 +46,7 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusNotFound, "Couldn't get task", err)
 		return
 	}
-
+	// Retrieve the list of task editors for the task
 	dbTaskEditors, err := cfg.db.GetTaskEditorsByTaskID(r.Context(), dbTask.ID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve task editors", err)
@@ -61,12 +62,11 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 			}
 		}
 	}
-
 	if !isAuthorized {
 		respondWithError(w, http.StatusForbidden, "You don't have permission to update this task", nil)
 		return
 	}
-
+	// Decode the request body to get the new task parameters
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err = decoder.Decode(&params)
@@ -74,6 +74,7 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
+	// Validate the parameters (e.g., check date format, priority and state values)
 	errDate := CheckDateFormat(params.EndDate)
 	if errDate != "" {
 		respondWithError(w, http.StatusBadRequest, errDate, nil)
@@ -102,7 +103,7 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't update task", err)
 		return
 	}
-
+	// Retrieve the updated list of task editors
 	type response struct {
 		ID          uuid.UUID   `json:"id"`
 		CreatedAt   time.Time   `json:"created_at"`
@@ -116,7 +117,7 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 		State       string      `json:"state"`
 		EditorIDs   []uuid.UUID `json:"editor_ids"`
 	}
-
+	// Respond with the updated task details
 	respondWithJSON(w, http.StatusOK, response{
 		ID:          updatedTask.ID,
 		CreatedAt:   updatedTask.CreatedAt,
