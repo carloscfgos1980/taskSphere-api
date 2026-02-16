@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -111,19 +110,4 @@ func MakeRefreshToken() string {
 	token := make([]byte, 32)
 	rand.Read(token)
 	return hex.EncodeToString(token)
-}
-
-func GetAPIKey(headers http.Header) (string, error) {
-	apiKey := headers.Get("x-api-key")
-	log.Printf("auth header: %s", apiKey)
-	if apiKey == "" {
-		return "", ErrNoAuthHeaderIncluded
-	}
-	// splitAuth := strings.Split(authHeader, " ")
-	// if len(splitAuth) < 2 || splitAuth[0] != "x-api-key" {
-	// 	return "", errors.New("malformed authorization header")
-	// }
-	return apiKey, nil
-
-	// return splitAuth[1], nil
 }

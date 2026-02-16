@@ -103,7 +103,7 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't update task", err)
 		return
 	}
-	// Retrieve the updated list of task editors
+	// type response struct
 	type response struct {
 		ID          uuid.UUID   `json:"id"`
 		CreatedAt   time.Time   `json:"created_at"`

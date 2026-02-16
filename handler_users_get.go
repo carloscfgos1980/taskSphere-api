@@ -43,6 +43,6 @@ func (cfg *apiConfig) handlerUsersRetrieve(w http.ResponseWriter, r *http.Reques
 			Email:     dbUser.Email,
 		})
 	}
-
+	// Respond with the list of users
 	respondWithJSON(w, http.StatusOK, users)
 }

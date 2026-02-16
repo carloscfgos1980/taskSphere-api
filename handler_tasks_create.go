@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// Task represents the structure of a task in the system, including its ID, timestamps, user association, title, end date, description, priority, tag, state, parent task association, and any associated editors.
 type Task struct {
 	ID          uuid.UUID   `json:"id"`
 	CreatedAt   time.Time   `json:"created_at"`

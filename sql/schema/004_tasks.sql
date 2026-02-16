@@ -14,7 +14,7 @@ CREATE TABLE tasks (
 );
 
 CREATE TABLE task_editors (
-    task_id UUID NOT NULL REFERENCES tasks(id),
+    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
     editor_id UUID NOT NULL REFERENCES users(id),
     PRIMARY KEY (task_id, editor_id)
 );

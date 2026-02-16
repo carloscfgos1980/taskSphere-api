@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// structs and handler for creating a new user in the system
 type User struct {
 	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`

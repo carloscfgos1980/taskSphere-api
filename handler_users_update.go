@@ -9,10 +9,12 @@ import (
 )
 
 func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request) {
+	// Define the expected parameters for updating a user's information
 	type parameters struct {
 		Password string `json:"password"`
 		Email    string `json:"email"`
 	}
+	//	Define the structure of the response that will be sent back to the client after successfully updating the user's information
 	type response struct {
 		User
 	}

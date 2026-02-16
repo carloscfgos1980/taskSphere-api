@@ -15,7 +15,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 		Email    string `json:"email"`
 	}
-	// Define the response structure for a successful login, including the user's information and the generated JWT token
+	// Define the response structure for a successful login, including the user's information and the generated JWT token and refresh token
 	type response struct {
 		User
 		Token        string `json:"token"`
@@ -51,7 +51,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create JWT token", err)
 		return
 	}
-
+	// Generate a refresh token for the user to allow them to obtain a new JWT token without re-entering their credentials
 	refreshToken := auth.MakeRefreshToken()
 	// Store the generated refresh token in the database associated with the user's ID and an expiration time
 	_, err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{

@@ -8,6 +8,7 @@ import (
 )
 
 func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
+	// Define a response struct to hold the new JWT token that will be returned to the client
 	type response struct {
 		Token string `json:"token"`
 	}
@@ -27,7 +28,7 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := auth.MakeJWT(
 		user.ID,
 		cfg.jwtSecret,
-		time.Hour,
+		24*7*time.Hour,
 	)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Couldn't validate token", err)
@@ -52,6 +53,6 @@ func (cfg *apiConfig) handlerRevoke(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't revoke session", err)
 		return
 	}
-
+	// Respond with a 204 No Content status to indicate successful revocation of the refresh token
 	w.WriteHeader(http.StatusNoContent)
 }
