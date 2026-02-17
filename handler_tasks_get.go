@@ -165,6 +165,32 @@ func (cfg *apiConfig) handlerTasksGetCollaborative(w http.ResponseWriter, r *htt
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get collaborative tasks", err)
 		return
 	}
+	// Extract the Bearer token from the Authorization header
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "No authorization token included", err)
+		return
+	}
+	// Verify JWT token and extract the user ID
+	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't validate JWT", err)
+		return
+	}
+	// Check if the user is authorized to access the collaborative tasks by verifying if they are part of the work group associated with the parent task ID
+	isAuthorized := false
+	for _, dbGroupTask := range dbGroupTasks {
+		if dbGroupTask.UserID == userID {
+			isAuthorized = true
+			break
+		}
+	}
+	// If the user is not authorized, respond with an unauthorized error
+	if !isAuthorized {
+		respondWithError(w, http.StatusUnauthorized, "you are not part of this work group", nil)
+		return
+	}
+
 	// Define the response structure for a single collaborative task
 	type taskResponse struct {
 		ID          uuid.UUID   `json:"id"`
@@ -194,6 +220,7 @@ func (cfg *apiConfig) handlerTasksGetCollaborative(w http.ResponseWriter, r *htt
 		if len(taskEditors) == 0 {
 			taskEditors = []uuid.UUID{}
 		}
+
 		// Append the collaborative task details along with its editors to the response array
 		response = append(response, taskResponse{
 			ID:          dbGroupTask.ID,

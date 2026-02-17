@@ -75,11 +75,6 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// Validate the parameters (e.g., check date format, priority and state values)
-	errDate := CheckDateFormat(params.EndDate)
-	if errDate != "" {
-		respondWithError(w, http.StatusBadRequest, errDate, nil)
-		return
-	}
 	errPriority := CheckPriority(params.Priority)
 	if errPriority != "" {
 		respondWithError(w, http.StatusBadRequest, errPriority, nil)
@@ -90,6 +85,7 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusBadRequest, errState, nil)
 		return
 	}
+
 	// Update the task in the database with the new parameters
 	updatedTask, err := cfg.db.UpdateTask(r.Context(), database.UpdateTaskParams{
 		ID:          taskID,

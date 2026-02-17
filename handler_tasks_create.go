@@ -84,12 +84,9 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusBadRequest, errState, nil)
 		return
 	}
-	if errTag := CheckTag(params.Tag); errTag != "" {
+	resultTag, errTag := CheckTag(params.Tag)
+	if errTag != "" {
 		respondWithError(w, http.StatusBadRequest, errTag, nil)
-		return
-	}
-	if errDate := CheckDateFormat(params.EndDate); errDate != "" {
-		respondWithError(w, http.StatusBadRequest, errDate, nil)
 		return
 	}
 
@@ -101,7 +98,7 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		EndDate:     params.EndDate,
 		Description: params.Description,
 		Priority:    params.Priority,
-		Tag:         params.Tag,
+		Tag:         resultTag,
 		State:       params.State,
 		ParentID:    uuid.NullUUID{UUID: params.ParentID, Valid: params.ParentID != uuid.Nil},
 	})
@@ -160,18 +157,13 @@ func CheckState(state string) (err string) {
 	}
 }
 
-func CheckTag(tag string) (err string) {
+func CheckTag(tag string) (resultTag, err string) {
 	switch tag {
+	case "":
+		return "private", ""
 	case "private", "collaborative":
-		return ""
+		return tag, ""
 	default:
-		return "Invalid tag value"
+		return "", "Invalid tag value"
 	}
-}
-
-func CheckDateFormat(date time.Time) (err string) {
-	if date.IsZero() {
-		return "Invalid date format"
-	}
-	return ""
 }
