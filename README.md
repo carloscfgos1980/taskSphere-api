@@ -16,33 +16,6 @@
 * Editing (modify title, description, status, date, etc.)
 * Data is saved in postgres
 
-## programs needed to run the api
-
-1. postgres
-2. goose (migrations)
-3. SQLC (generate Go code from SQL queries)
-
-## Recommended fields per task
-
-* Title (required)
-* Description
-* Creation date
-* Deadline/expiration date
-* Priority (low, medium, high, urgent)
-* Tags (private, , public, collaborative)
-* State (pending, in progress, done, cancelled)
-* List of assigned users/participants (taskEditors)
-* Original creator (user_id)
-
-## tasks
-
-* Task could be personal (private or public) or collaborative.
-* Collaborative are the tasks for a group. The parent taks would have empty parent_id and the subtree tasks must has parent_id filled with the refrenced main task (task_id)
-* end_time format: 2026-03-22T08:00:00Z
-* To view collaborative tasks the parent_id must be provided as URL path value and be logged in. Only users of the groud can see the list of tasks
-* Only task_editors assigned by the author of the taks can modified the task
-* Only the author of the task can errased
-
 ## Motivation
 
 After months of studying learning to program in Go, I needed to build a real life project to show my programming skills. It took me a while to figure it what I wanted to build. It must be something could be applied in real solving problem situation.
@@ -62,6 +35,35 @@ go get github.com/carloscfgos1980/taskSphere-api
 ```bash
 go run .
 ```
+
+## 📖 Usage
+
+### programs needed to run the api
+
+1. postgres
+2. goose (migrations)
+3. SQLC (generate Go code from SQL queries)
+
+### Recommended fields per task
+
+* Title (required)
+* Description
+* Creation date
+* Deadline/expiration date
+* Priority (low, medium, high, urgent)
+* Tags (private, , public, collaborative)
+* State (pending, in progress, done, cancelled)
+* List of assigned users/participants (taskEditors)
+* Original creator (user_id)
+
+### tasks
+
+* Task could be personal (private or public) or collaborative.
+* Collaborative are the tasks for a group. The parent taks would have empty parent_id and the subtree tasks must has parent_id filled with the refrenced main task (task_id)
+* end_time format: 2026-03-22T08:00:00Z
+* To view collaborative tasks the parent_id must be provided as URL path value and be logged in. Only users of the groud can see the list of tasks
+* Only task_editors assigned by the author of the taks can modified the task
+* Only the author of the task can errased
 
 ## 🤝 Contributing
 
