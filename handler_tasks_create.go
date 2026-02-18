@@ -161,7 +161,7 @@ func CheckTag(tag string) (resultTag, err string) {
 	switch tag {
 	case "":
 		return "private", ""
-	case "private", "collaborative":
+	case "private", "collaborative", "public":
 		return tag, ""
 	default:
 		return "", "Invalid tag value"

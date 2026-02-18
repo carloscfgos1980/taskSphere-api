@@ -2,32 +2,25 @@
 
 ## Project Description
 
-* TaskSphere is a multi-user TODO list management application and the possibility of controlled collaboration.
-* The system allows each user to create, organize and manage their own tasks completely privately: no other user can see another person's personal tasks
+* TaskSphere is a multi-user TODO list management application with an emphasis on privacy by default and the possibility of controlled collaboration.
+
+* The system allows each user to create, organize and manage their own tasks completely privately: no other user can see another person's personal tasks unless the owner explicitly decides to share them.
 
 ## Main features
 
 * User registration and login (secure authentication) - JWT token and refresh token implemented
-* Tasks created could be private or collaborative. Private can only been seen by the author
-* Support for group/collaborative tasks:
-* A task can have multiple owners/assignees (taskEditors)
+* Tasks created could be tagged as private, publiic or collaborative.
+* Support for group (collaborative) tasks:
+* A task can have a owner and multiples assignees (taskEditors)
 * All assigned users can view and (depending on permissions) modify the task
 * Editing (modify title, description, status, date, etc.)
 * Data is saved in postgres
 
-## programs needed to work with the api
+## programs needed to run the api
 
-1. Install postgres
-2. Install goose (migrations)
-3. Install SQLC (generate Go code from SQL queries)
-
-## Typical task states
-
-* Pending
-* In progress
-* Waiting
-* Done
-* Canceled
+1. postgres
+2. goose (migrations)
+3. SQLC (generate Go code from SQL queries)
 
 ## Recommended fields per task
 
@@ -36,11 +29,20 @@
 * Creation date
 * Deadline/expiration date
 * Priority (low, medium, high, urgent)
-* Tags (private, collaborative)
-* State
-* List of assigned users/participants
-* Original creator
-* Subtasks / checklist
+* Tags (private, , public, collaborative)
+* State (pending, in progress, done, cancelled)
+* List of assigned users/participants (taskEditors)
+* Original creator (user_id)
+
+## tasks
+
+* Task could be personal (private or public) or collaborative.
+* Collaborative are the tasks for a group. The parent taks would have empty parent_id and the subtree tasks must has parent_id filled with the refrenced main task (task_id)
+* end_time format: 2026-03-22T08:00:00Z
+* To view collaborative tasks the parent_id must be provided as URL path value and be logged in. Only users of the groud can see the list of tasks
+* Only task_editors assigned by the author of the taks can modified the task
+* Only the author of the task can errased
+
 
 ## ⚙️ Installation
 
