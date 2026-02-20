@@ -75,14 +75,14 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// Validate the parameters (e.g., check date format, priority and state values)
-	errPriority := CheckPriority(params.Priority)
-	if errPriority != "" {
-		respondWithError(w, http.StatusBadRequest, errPriority, nil)
+	err = CheckPriority(params.Priority)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-	errState := CheckState(params.State)
-	if errState != "" {
-		respondWithError(w, http.StatusBadRequest, errState, nil)
+	err = CheckState(params.State)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 

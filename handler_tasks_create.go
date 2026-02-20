@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -76,17 +77,17 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// Validate the provided parameters for creating a new task (e.g., check if priority, state, tag, and date formats are valid)
-	if errPriority := CheckPriority(params.Priority); errPriority != "" {
-		respondWithError(w, http.StatusBadRequest, errPriority, nil)
+	if err = CheckPriority(params.Priority); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-	if errState := CheckState(params.State); errState != "" {
-		respondWithError(w, http.StatusBadRequest, errState, nil)
+	if err = CheckState(params.State); err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-	resultTag, errTag := CheckTag(params.Tag)
-	if errTag != "" {
-		respondWithError(w, http.StatusBadRequest, errTag, nil)
+	resultTag, err := CheckTag(params.Tag)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
 
@@ -139,31 +140,31 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-func CheckPriority(priority string) (err string) {
+func CheckPriority(priority string) (err error) {
 	switch priority {
 	case "low", "medium", "high", "urgent":
-		return
+		return nil
 	default:
-		return "Invalid priority value"
+		return fmt.Errorf("Invalid priority value: %s", priority)
 	}
 }
 
-func CheckState(state string) (err string) {
+func CheckState(state string) (err error) {
 	switch state {
 	case "pending", "in progress", "done", "cancelled":
-		return ""
+		return nil
 	default:
-		return "Invalid state value"
+		return fmt.Errorf("Invalid state value: %s", state)
 	}
 }
 
-func CheckTag(tag string) (resultTag, err string) {
+func CheckTag(tag string) (resultTag string, err error) {
 	switch tag {
 	case "":
-		return "private", ""
+		return "private", nil
 	case "private", "collaborative", "public":
-		return tag, ""
+		return tag, nil
 	default:
-		return "", "Invalid tag value"
+		return "", fmt.Errorf("Invalid tag value: %s", tag)
 	}
 }

@@ -1,10 +1,12 @@
-# tashSphere
+# tashSphere-api
 
 ## Project Description
 
 * TaskSphere is a multi-user TODO list management application with an emphasis on privacy by default and the possibility of controlled collaboration
 
 * The system allows each user to create, organize and manage their own tasks completely privately: no other user can see another person's personal tasks unless the owner explicitly decides to share them
+
+* Collaborative tasks can only be seen by those who are part of the group.
 
 ## Main features
 
