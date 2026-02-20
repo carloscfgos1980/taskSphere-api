@@ -64,12 +64,13 @@ func main() {
 	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate)
 	mux.HandleFunc("GET /api/users", apiCfg.handlerUsersRetrieve)
 
-	mux.HandleFunc("POST /api/tasks", apiCfg.handlerTasksCreate)
-	mux.HandleFunc("GET /api/tasks/{taskID}", apiCfg.handlerTasksGet)
-	mux.HandleFunc("GET /api/personal/tasks", apiCfg.handlerTasksGetPersonal)
-	mux.HandleFunc("GET /api/collaborative/tasks/{parentID}", apiCfg.handlerTasksGetCollaborative)
-	mux.HandleFunc("PUT /api/tasks/{taskID}", apiCfg.handlerTasksUpdate)
-	mux.HandleFunc("DELETE /api/tasks/{taskID}", apiCfg.handlerTasksDelete)
+	mux.HandleFunc("POST /v1/api/tasks", apiCfg.handlerTasksCreate)
+	mux.HandleFunc("GET /v1/api/tasks/{taskID}", apiCfg.handlerTasksGet)
+	mux.HandleFunc("GET /v1/api/personal/tasks", apiCfg.handlerTasksGetPersonal)
+	mux.HandleFunc("GET /v1/api/collaborative/tasks/{parentID}", apiCfg.handlerTasksGetCollaborative)
+	mux.HandleFunc("PUT /v1/api/tasks/{taskID}", apiCfg.handlerTasksUpdate)
+	mux.HandleFunc("DELETE /v1/api/tasks/{taskID}", apiCfg.handlerTasksDelete)
+
 	// Start the HTTP server
 	srv := &http.Server{
 		Addr:    ":" + port,
