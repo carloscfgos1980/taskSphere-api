@@ -39,6 +39,13 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
+	// strong password validation can be added here before hashing the password and creating the user in the database
+	err = auth.IsStrongPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+
 	// Hash the user's password before storing it in the database
 	hashedPassword, err := auth.HashPassword(params.Password)
 	if err != nil {

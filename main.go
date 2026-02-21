@@ -56,20 +56,20 @@ func main() {
 	// Set up the HTTP server and routes
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
-	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
-	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
+	mux.HandleFunc("POST /v2/api/login", apiCfg.handlerLogin)
+	mux.HandleFunc("POST /v2/api/refresh", apiCfg.handlerRefresh)
+	mux.HandleFunc("POST /v2/api/revoke", apiCfg.handlerRevoke)
 
-	mux.HandleFunc("POST /api/users", apiCfg.handlerUsersCreate)
-	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate)
-	mux.HandleFunc("GET /api/users", apiCfg.handlerUsersRetrieve)
+	mux.HandleFunc("POST /v2/api/users", apiCfg.handlerUsersCreate)
+	mux.HandleFunc("PUT /v2/api/users", apiCfg.handlerUsersUpdate)
+	mux.HandleFunc("GET /v2/api/users", apiCfg.handlerUsersRetrieve)
 
-	mux.HandleFunc("POST /v1/api/tasks", apiCfg.handlerTasksCreate)
-	mux.HandleFunc("GET /v1/api/tasks/{taskID}", apiCfg.handlerTasksGet)
-	mux.HandleFunc("GET /v1/api/personal/tasks", apiCfg.handlerTasksGetPersonal)
-	mux.HandleFunc("GET /v1/api/collaborative/tasks/{parentID}", apiCfg.handlerTasksGetCollaborative)
-	mux.HandleFunc("PUT /v1/api/tasks/{taskID}", apiCfg.handlerTasksUpdate)
-	mux.HandleFunc("DELETE /v1/api/tasks/{taskID}", apiCfg.handlerTasksDelete)
+	mux.HandleFunc("POST /v2/api/tasks", apiCfg.handlerTasksCreate)
+	mux.HandleFunc("GET /v2/api/tasks/{taskID}", apiCfg.handlerTasksGet)
+	mux.HandleFunc("GET /v2/api/personal/tasks", apiCfg.handlerTasksGetPersonal)
+	mux.HandleFunc("GET /v2/api/collaborative/tasks/{parentID}", apiCfg.handlerTasksGetCollaborative)
+	mux.HandleFunc("PUT /v2/api/tasks/{taskID}", apiCfg.handlerTasksUpdate)
+	mux.HandleFunc("DELETE /v2/api/tasks/{taskID}", apiCfg.handlerTasksDelete)
 
 	// Start the HTTP server
 	srv := &http.Server{
