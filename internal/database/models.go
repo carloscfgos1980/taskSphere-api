@@ -32,18 +32,14 @@ type Task struct {
 	Tag         string
 	State       string
 	ParentID    uuid.NullUUID
-}
-
-type TaskEditor struct {
-	TaskID   uuid.UUID
-	EditorID uuid.UUID
+	TaskEditors []uuid.UUID
 }
 
 type User struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	Username  string
 	Email     string
 	Password  string
-	Username  string
 }

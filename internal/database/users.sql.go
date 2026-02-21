@@ -21,7 +21,7 @@ VALUES (
     $2,
     $3
 )
-RETURNING id, created_at, updated_at, email, password, username
+RETURNING id, created_at, updated_at, username, email, password
 `
 
 type CreateUserParams struct {
@@ -37,15 +37,15 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Username,
 		&i.Email,
 		&i.Password,
-		&i.Username,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, created_at, updated_at, email, password, username FROM users
+SELECT id, created_at, updated_at, username, email, password FROM users
 WHERE email = $1
 `
 
@@ -56,15 +56,15 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Username,
 		&i.Email,
 		&i.Password,
-		&i.Username,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, created_at, updated_at, email, password, username FROM users
+SELECT id, created_at, updated_at, username, email, password FROM users
 WHERE id = $1
 `
 
@@ -75,15 +75,15 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Username,
 		&i.Email,
 		&i.Password,
-		&i.Username,
 	)
 	return i, err
 }
 
 const getUsers = `-- name: GetUsers :many
-SELECT id, created_at, updated_at, email, password, username FROM users
+SELECT id, created_at, updated_at, username, email, password FROM users
 ORDER BY created_at ASC
 `
 
@@ -100,9 +100,9 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 			&i.ID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Username,
 			&i.Email,
 			&i.Password,
-			&i.Username,
 		); err != nil {
 			return nil, err
 		}
@@ -120,7 +120,7 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 const updateUser = `-- name: UpdateUser :one
 UPDATE users SET username = $2, email = $3, password = $4, updated_at = NOW()
 WHERE id = $1
-RETURNING id, created_at, updated_at, email, password, username
+RETURNING id, created_at, updated_at, username, email, password
 `
 
 type UpdateUserParams struct {
@@ -142,9 +142,9 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Username,
 		&i.Email,
 		&i.Password,
-		&i.Username,
 	)
 	return i, err
 }

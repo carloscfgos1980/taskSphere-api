@@ -10,10 +10,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const createTask = `-- name: CreateTask :one
-INSERT INTO tasks (id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id)
+INSERT INTO tasks (id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id, task_editors)
 VALUES (
     gen_random_uuid(),
     NOW(),
@@ -25,9 +26,10 @@ VALUES (
     $5,
     $6,
     $7,
-    $8
+    $8,
+    $9
 )
-RETURNING id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id
+RETURNING id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id, task_editors
 `
 
 type CreateTaskParams struct {
@@ -39,6 +41,7 @@ type CreateTaskParams struct {
 	Tag         string
 	State       string
 	ParentID    uuid.NullUUID
+	TaskEditors []uuid.UUID
 }
 
 func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, error) {
@@ -51,6 +54,7 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 		arg.Tag,
 		arg.State,
 		arg.ParentID,
+		pq.Array(arg.TaskEditors),
 	)
 	var i Task
 	err := row.Scan(
@@ -65,25 +69,8 @@ func (q *Queries) CreateTask(ctx context.Context, arg CreateTaskParams) (Task, e
 		&i.Tag,
 		&i.State,
 		&i.ParentID,
+		pq.Array(&i.TaskEditors),
 	)
-	return i, err
-}
-
-const createTaskEditors = `-- name: CreateTaskEditors :one
-INSERT INTO task_editors (task_id, editor_id)
-VALUES ($1, $2)
-RETURNING task_id, editor_id
-`
-
-type CreateTaskEditorsParams struct {
-	TaskID   uuid.UUID
-	EditorID uuid.UUID
-}
-
-func (q *Queries) CreateTaskEditors(ctx context.Context, arg CreateTaskEditorsParams) (TaskEditor, error) {
-	row := q.db.QueryRowContext(ctx, createTaskEditors, arg.TaskID, arg.EditorID)
-	var i TaskEditor
-	err := row.Scan(&i.TaskID, &i.EditorID)
 	return i, err
 }
 
@@ -97,7 +84,7 @@ func (q *Queries) DeleteTask(ctx context.Context, id uuid.UUID) error {
 }
 
 const getCollaborativeTasksByParentID = `-- name: GetCollaborativeTasksByParentID :many
-SELECT u.email, u.username, t.id, t.created_at, t.updated_at, t.user_id, t.title, t.end_date, t.description, t.priority, t.tag, t.state, t.parent_id
+SELECT u.email, u.username, t.id, t.created_at, t.updated_at, t.user_id, t.title, t.end_date, t.description, t.priority, t.tag, t.state, t.parent_id, t.task_editors
 FROM tasks t
 JOIN users u ON t.user_id = u.id
 WHERE t.parent_id = $1 OR t.id = $1
@@ -118,6 +105,7 @@ type GetCollaborativeTasksByParentIDRow struct {
 	Tag         string
 	State       string
 	ParentID    uuid.NullUUID
+	TaskEditors []uuid.UUID
 }
 
 func (q *Queries) GetCollaborativeTasksByParentID(ctx context.Context, parentID uuid.NullUUID) ([]GetCollaborativeTasksByParentIDRow, error) {
@@ -143,6 +131,7 @@ func (q *Queries) GetCollaborativeTasksByParentID(ctx context.Context, parentID 
 			&i.Tag,
 			&i.State,
 			&i.ParentID,
+			pq.Array(&i.TaskEditors),
 		); err != nil {
 			return nil, err
 		}
@@ -158,7 +147,7 @@ func (q *Queries) GetCollaborativeTasksByParentID(ctx context.Context, parentID 
 }
 
 const getTaskByID = `-- name: GetTaskByID :one
-SELECT id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id FROM tasks WHERE id = $1
+SELECT id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id, task_editors FROM tasks WHERE id = $1
 `
 
 func (q *Queries) GetTaskByID(ctx context.Context, id uuid.UUID) (Task, error) {
@@ -176,39 +165,13 @@ func (q *Queries) GetTaskByID(ctx context.Context, id uuid.UUID) (Task, error) {
 		&i.Tag,
 		&i.State,
 		&i.ParentID,
+		pq.Array(&i.TaskEditors),
 	)
 	return i, err
 }
 
-const getTaskEditorsByTaskID = `-- name: GetTaskEditorsByTaskID :many
-SELECT editor_id FROM task_editors WHERE task_id = $1
-`
-
-func (q *Queries) GetTaskEditorsByTaskID(ctx context.Context, taskID uuid.UUID) ([]uuid.UUID, error) {
-	rows, err := q.db.QueryContext(ctx, getTaskEditorsByTaskID, taskID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []uuid.UUID
-	for rows.Next() {
-		var editor_id uuid.UUID
-		if err := rows.Scan(&editor_id); err != nil {
-			return nil, err
-		}
-		items = append(items, editor_id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getTasksByUserID = `-- name: GetTasksByUserID :many
-SELECT id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id FROM tasks WHERE user_id = $1 ORDER BY created_at ASC
+SELECT id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id, task_editors FROM tasks WHERE user_id = $1 ORDER BY created_at ASC
 `
 
 func (q *Queries) GetTasksByUserID(ctx context.Context, userID uuid.UUID) ([]Task, error) {
@@ -232,6 +195,7 @@ func (q *Queries) GetTasksByUserID(ctx context.Context, userID uuid.UUID) ([]Tas
 			&i.Tag,
 			&i.State,
 			&i.ParentID,
+			pq.Array(&i.TaskEditors),
 		); err != nil {
 			return nil, err
 		}
@@ -255,7 +219,7 @@ SET title = $2,
     state = $6,
     updated_at = NOW()
 WHERE id = $1
-RETURNING id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id
+RETURNING id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id, task_editors
 `
 
 type UpdateTaskParams struct {
@@ -289,6 +253,7 @@ func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, e
 		&i.Tag,
 		&i.State,
 		&i.ParentID,
+		pq.Array(&i.TaskEditors),
 	)
 	return i, err
 }

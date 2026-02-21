@@ -1,5 +1,5 @@
 -- name: CreateTask :one
-INSERT INTO tasks (id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id)
+INSERT INTO tasks (id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id, task_editors)
 VALUES (
     gen_random_uuid(),
     NOW(),
@@ -11,23 +11,18 @@ VALUES (
     $5,
     $6,
     $7,
-    $8
+    $8,
+    $9
 )
 RETURNING *;
 
--- name: CreateTaskEditors :one
-INSERT INTO task_editors (task_id, editor_id)
-VALUES ($1, $2)
-RETURNING *;
 
 -- name: GetTaskByID :one
 SELECT * FROM tasks WHERE id = $1;  
 
--- name: GetTaskEditorsByTaskID :many
-SELECT editor_id FROM task_editors WHERE task_id = $1;
-
 -- name: GetTasksByUserID :many
 SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at ASC;
+
 
 -- name: GetCollaborativeTasksByParentID :many
 SELECT u.email, u.username, t.*
