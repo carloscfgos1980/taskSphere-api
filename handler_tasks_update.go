@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -46,24 +47,20 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusNotFound, "Couldn't get task", err)
 		return
 	}
-	// Retrieve the list of task editors for the task
-	dbTaskEditors, err := cfg.db.GetTaskEditorsByTaskID(r.Context(), dbTask.ID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve task editors", err)
-		return
-	}
+
 	// Check if the user is authorized to update the task (either the owner or a task editor)
 	isAuthorized := dbTask.UserID == userID
 	if !isAuthorized {
-		for _, editorID := range dbTaskEditors {
+		for _, editorID := range dbTask.TaskEditors {
 			if editorID == userID {
 				isAuthorized = true
 				break
 			}
 		}
 	}
+	// If the user is not authorized, respond with a 403 Forbidden error
 	if !isAuthorized {
-		respondWithError(w, http.StatusForbidden, "You don't have permission to update this task", nil)
+		respondWithError(w, http.StatusForbidden, "You don't have permission to update this task", errors.New("user not authorized to update task"))
 		return
 	}
 	// Decode the request body to get the new task parameters
@@ -99,32 +96,7 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't update task", err)
 		return
 	}
-	// type response struct
-	type response struct {
-		ID          uuid.UUID   `json:"id"`
-		CreatedAt   time.Time   `json:"created_at"`
-		UpdatedAt   time.Time   `json:"updated_at"`
-		UserID      uuid.UUID   `json:"user_id"`
-		Title       string      `json:"title"`
-		EndDate     time.Time   `json:"end_date"`
-		Description string      `json:"description"`
-		Priority    string      `json:"priority"`
-		Tag         string      `json:"tag"`
-		State       string      `json:"state"`
-		EditorIDs   []uuid.UUID `json:"editor_ids"`
-	}
+
 	// Respond with the updated task details
-	respondWithJSON(w, http.StatusOK, response{
-		ID:          updatedTask.ID,
-		CreatedAt:   updatedTask.CreatedAt,
-		UpdatedAt:   updatedTask.UpdatedAt,
-		UserID:      updatedTask.UserID,
-		Title:       updatedTask.Title,
-		EndDate:     updatedTask.EndDate,
-		Description: updatedTask.Description,
-		Priority:    updatedTask.Priority,
-		Tag:         updatedTask.Tag,
-		State:       updatedTask.State,
-		EditorIDs:   dbTaskEditors,
-	})
+	respondWithJSON(w, http.StatusOK, updatedTask)
 }

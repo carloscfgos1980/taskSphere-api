@@ -10,7 +10,7 @@ CREATE TABLE tasks (
     priority TEXT NOT NULL CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
     tag TEXT NOT NULL CHECK (tag IN ('private', 'public', 'collaborative')),
     state TEXT NOT NULL CHECK (state IN ('pending', 'in progress', 'done', 'cancelled')),
-    parent_id UUID REFERENCES tasks(id),
+    parent_id UUID,
     task_editors UUID []
 );
 

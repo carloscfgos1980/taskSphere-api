@@ -46,6 +46,10 @@ go run .
 2. goose (migrations)
 3. SQLC (generate Go code from SQL queries)
 
+### user password
+
+* It must contain at least one capital letter, lowercase letter, one special character and a number
+
 ### Recommended fields per task
 
 * Title (required)

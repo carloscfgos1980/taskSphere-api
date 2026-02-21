@@ -13,6 +13,7 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 	type parameters struct {
 		Password string `json:"password"`
 		Email    string `json:"email"`
+		Username string `json:"username"`
 	}
 	//	Define the structure of the response that will be sent back to the client after successfully updating the user's information
 	type response struct {
@@ -49,6 +50,7 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 		ID:       userID,
 		Email:    params.Email,
 		Password: hashedPassword,
+		Username: params.Username,
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't update user", err)
@@ -61,6 +63,7 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 			CreatedAt: user.CreatedAt,
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
+			Username:  user.Username,
 		},
 	})
 }

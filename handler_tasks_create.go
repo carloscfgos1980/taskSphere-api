@@ -25,7 +25,7 @@ type Task struct {
 	Priority    string      `json:"priority"`
 	Tag         string      `json:"tag"`
 	State       string      `json:"state"`
-	ParentID    uuid.UUID   `json:"parent_id,omitempty"`
+	ParentID    uuid.UUID   `json:"parent_id"`
 	TaskEditors []uuid.UUID `json:"task_editors"`
 }
 
@@ -38,24 +38,10 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		Priority    string      `json:"priority"`
 		Tag         string      `json:"tag"`
 		State       string      `json:"state"`
-		ParentID    uuid.UUID   `json:"parent_id,omitempty"`
+		ParentID    uuid.UUID   `json:"parent_id"`
 		TaskEditors []uuid.UUID `json:"task_editors"`
 	}
-	// Define the response structure for a single task
-	type response struct {
-		ID          uuid.UUID   `json:"id"`
-		CreatedAt   time.Time   `json:"created_at"`
-		UpdatedAt   time.Time   `json:"updated_at"`
-		UserID      uuid.UUID   `json:"user_id"`
-		Title       string      `json:"title"`
-		EndDate     time.Time   `json:"end_date"`
-		Description string      `json:"description"`
-		Priority    string      `json:"priority"`
-		Tag         string      `json:"tag"`
-		State       string      `json:"state"`
-		ParentID    uuid.UUID   `json:"parent_id,omitempty"`
-		TaskEditors []uuid.UUID `json:"task_editors"`
-	}
+
 	// Validate the user's authorization to create a new task by checking the provided JWT token
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
@@ -102,42 +88,15 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		Tag:         resultTag,
 		State:       params.State,
 		ParentID:    uuid.NullUUID{UUID: params.ParentID, Valid: params.ParentID != uuid.Nil},
+		TaskEditors: params.TaskEditors,
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create task", err)
 		return
 	}
-	// If task editors are provided in the request, create entries in the database to associate them with the newly created task
-	dbTaskEditors := []uuid.UUID{}
-	if len(params.TaskEditors) > 0 {
-		log.Printf("Adding %d editors to task", len(params.TaskEditors))
-		for _, editorID := range params.TaskEditors {
-			_, err := cfg.db.CreateTaskEditors(r.Context(), database.CreateTaskEditorsParams{
-				TaskID:   dbTask.ID,
-				EditorID: editorID,
-			})
-			if err != nil {
-				respondWithError(w, http.StatusInternalServerError, "Couldn't create task editors", err)
-				return
-			}
-			dbTaskEditors = append(dbTaskEditors, editorID)
-		}
-	}
+
 	// Respond with the created task's information, including its editors
-	respondWithJSON(w, http.StatusCreated, response{
-		ID:          dbTask.ID,
-		CreatedAt:   dbTask.CreatedAt,
-		UpdatedAt:   dbTask.UpdatedAt,
-		UserID:      dbTask.UserID,
-		Title:       dbTask.Title,
-		EndDate:     dbTask.EndDate,
-		Description: dbTask.Description,
-		Priority:    dbTask.Priority,
-		Tag:         dbTask.Tag,
-		State:       dbTask.State,
-		ParentID:    dbTask.ParentID.UUID,
-		TaskEditors: dbTaskEditors,
-	})
+	respondWithJSON(w, http.StatusCreated, dbTask)
 }
 
 func CheckPriority(priority string) (err error) {
