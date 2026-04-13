@@ -60,6 +60,7 @@ func (cfg *apiConfig) handlerTasksGetPersonal(w http.ResponseWriter, r *http.Req
 		respondWithError(w, http.StatusUnauthorized, "Couldn't validate JWT", err)
 		return
 	}
+
 	// Retrieve the tasks associated with the user ID from the database
 	dbTasks, err := cfg.db.GetTasksByUserID(r.Context(), userID)
 	if err != nil {

@@ -13,8 +13,7 @@ VALUES (
     $7,
     $8,
     $9
-)
-RETURNING *;
+) RETURNING *;
 
 
 -- name: GetTaskByID :one
