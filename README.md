@@ -11,12 +11,12 @@
 ## Main features
 
 * User registration and login (secure authentication) - JWT token and refresh token implemented
-* Tasks created could be tagged as private, publiic or collaborative
+* Tasks created could be tagged as private, public or collaborative
 * Support for group (collaborative) tasks
 * A task can have a owner and multiples assignees (taskEditors)
 * All assigned users can view and (depending on permissions) modify the task
 * Editing (modify title, description, status, date, etc.)
-* Data is saved in postgres
+* Data is saved in Postgres
 
 ## Motivation
 

@@ -60,6 +60,7 @@ func (cfg *apiConfig) handlerTasksGetPersonal(w http.ResponseWriter, r *http.Req
 		respondWithError(w, http.StatusUnauthorized, "Couldn't validate JWT", err)
 		return
 	}
+
 	// Retrieve the tasks associated with the user ID from the database
 	dbTasks, err := cfg.db.GetTasksByUserID(r.Context(), userID)
 	if err != nil {
@@ -105,6 +106,11 @@ func (cfg *apiConfig) handlerTasksGetCollaborative(w http.ResponseWriter, r *htt
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get collaborative tasks", err)
 		return
 	}
+	if len(dbGroupTasks) == 0 {
+		respondWithError(w, http.StatusNotFound, "No collaborative tasks found for this parent task", nil)
+		return
+	}
+
 	// Extract the Bearer token from the Authorization header
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
