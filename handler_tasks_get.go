@@ -102,10 +102,12 @@ func (cfg *apiConfig) handlerTasksGetCollaborative(w http.ResponseWriter, r *htt
 	// Retrieve the collaborative tasks associated with the parent task ID from the database
 
 	dbGroupTasks, err := cfg.db.GetCollaborativeTasksByParentID(r.Context(), uuid.NullUUID{UUID: ParentID, Valid: true})
+	// If there's an error retrieving the collaborative tasks, respond with an internal server error
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get collaborative tasks", err)
 		return
 	}
+	// If no collaborative tasks are found for the parent task, respond with a not found error
 	if len(dbGroupTasks) == 0 {
 		respondWithError(w, http.StatusNotFound, "No collaborative tasks found for this parent task", nil)
 		return

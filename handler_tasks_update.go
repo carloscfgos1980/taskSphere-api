@@ -15,11 +15,11 @@ import (
 func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request) {
 	// Define a struct to hold the parameters for updating the task
 	type parameters struct {
-		Title       string    `json:"title,omitempty"`
-		EndDate     time.Time `json:"end_date,omitempty"`
-		Description string    `json:"description,omitempty"`
-		Priority    string    `json:"priority,omitempty"`
-		State       string    `json:"state,omitempty"`
+		Title       *string    `json:"title,omitempty"`
+		EndDate     *time.Time `json:"end_date,omitempty"`
+		Description *string    `json:"description,omitempty"`
+		Priority    *string    `json:"priority,omitempty"`
+		State       *string    `json:"state,omitempty"`
 	}
 	// Extract the task ID from the URL path
 	taskIDString := r.PathValue("taskID")
@@ -71,26 +71,37 @@ func (cfg *apiConfig) handlerTasksUpdate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
-	// Validate the parameters (e.g., check date format, priority and state values)
-	err = CheckPriority(params.Priority)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error(), err)
-		return
+
+	title := dbTask.Title
+	if params.Title != nil {
+		title = *params.Title
 	}
-	err = CheckState(params.State)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error(), err)
-		return
+	endDate := dbTask.EndDate
+	if params.EndDate != nil {
+		endDate = *params.EndDate
+	}
+	description := dbTask.Description
+	if params.Description != nil {
+		description = *params.Description
+	}
+	priority := dbTask.Priority
+	if params.Priority != nil {
+		priority = *params.Priority
+	}
+	state := dbTask.State
+	if params.State != nil {
+		state = *params.State
 	}
 
-	// Update the task in the database with the new parameters
+	// Validate the parameters (e.g., check date format, priority and state values)
+
 	updatedTask, err := cfg.db.UpdateTask(r.Context(), database.UpdateTaskParams{
 		ID:          taskID,
-		Title:       params.Title,
-		EndDate:     params.EndDate,
-		Description: params.Description,
-		Priority:    params.Priority,
-		State:       params.State,
+		Title:       title,
+		EndDate:     endDate,
+		Description: description,
+		Priority:    priority,
+		State:       state,
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't update task", err)
