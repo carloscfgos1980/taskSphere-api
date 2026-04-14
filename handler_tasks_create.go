@@ -32,13 +32,13 @@ type Task struct {
 func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request) {
 	// Define the expected parameters for creating a new task and the response structure
 	type parameters struct {
-		Title       string      `json:"title"`
-		EndDate     time.Time   `json:"end_date"`
-		Description string      `json:"description"`
+		Title       string      `json:"title" binding:"required"`
+		EndDate     time.Time   `json:"end_date" binding:"required"`
+		Description string      `json:"description" binding:"required"`
 		Priority    string      `json:"priority"`
 		Tag         string      `json:"tag"`
 		State       string      `json:"state"`
-		ParentID    uuid.UUID   `json:"parent_id"`
+		ParentID    uuid.UUID   `json:"parent_id,omitempty"`
 		TaskEditors []uuid.UUID `json:"task_editors"`
 	}
 
@@ -63,15 +63,29 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	// Validate the provided parameters for creating a new task (e.g., check if priority, state, tag, and date formats are valid)
-	if err = CheckPriority(params.Priority); err != nil {
+	if params.Title == "" {
+		respondWithError(w, http.StatusBadRequest, "Title is required", fmt.Errorf("title is required"))
+		return
+	}
+	if params.EndDate.IsZero() {
+		respondWithError(w, http.StatusBadRequest, "End date is required", fmt.Errorf("end date is required"))
+		return
+	}
+	if params.Description == "" {
+		respondWithError(w, http.StatusBadRequest, "Description is required", fmt.Errorf("description is required"))
+		return
+	}
+	priority, err := CheckPriority(params.Priority)
+	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-	if err = CheckState(params.State); err != nil {
+	state, err := CheckState(params.State)
+	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-	resultTag, err := CheckTag(params.Tag)
+	tag, err := CheckTag(params.Tag)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
@@ -84,9 +98,9 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		Title:       params.Title,
 		EndDate:     params.EndDate,
 		Description: params.Description,
-		Priority:    params.Priority,
-		Tag:         resultTag,
-		State:       params.State,
+		Priority:    priority,
+		Tag:         tag,
+		State:       state,
 		ParentID:    uuid.NullUUID{UUID: params.ParentID, Valid: params.ParentID != uuid.Nil},
 		TaskEditors: params.TaskEditors,
 	})
@@ -99,21 +113,25 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 	respondWithJSON(w, http.StatusCreated, dbTask)
 }
 
-func CheckPriority(priority string) (err error) {
+func CheckPriority(priority string) (resultPriority string, err error) {
 	switch priority {
+	case "":
+		return "medium", nil
 	case "low", "medium", "high", "urgent":
-		return nil
+		return priority, nil
 	default:
-		return fmt.Errorf("Invalid priority value: %s", priority)
+		return "", fmt.Errorf("Invalid priority value: %s", priority)
 	}
 }
 
-func CheckState(state string) (err error) {
+func CheckState(state string) (resultState string, err error) {
 	switch state {
+	case "":
+		return "pending", nil
 	case "pending", "in progress", "done", "cancelled":
-		return nil
+		return state, nil
 	default:
-		return fmt.Errorf("Invalid state value: %s", state)
+		return "", fmt.Errorf("Invalid state value: %s", state)
 	}
 }
 
