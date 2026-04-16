@@ -10,6 +10,7 @@ import (
 var (
 	ErrMissingDatabaseURL = errors.New("missing database URL")
 	ErrMissingPort        = errors.New("missing port")
+	ErrMissingJWT         = errors.New("missing JWT secret")
 )
 
 type Config struct {
@@ -40,7 +41,7 @@ func LoadConfig() (*Config, error) {
 
 	JWTSecret := os.Getenv("JWT_SECRET")
 	if JWTSecret == "" {
-		return nil, errors.New("missing JWT secret")
+		return nil, ErrMissingJWT
 	}
 
 	// Return the configuration struct with the loaded values
