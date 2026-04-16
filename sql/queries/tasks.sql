@@ -1,0 +1,45 @@
+-- name: CreateTask :one
+INSERT INTO tasks (id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id, task_editors)
+VALUES (
+    gen_random_uuid(),
+    NOW(),
+    NOW(),
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9
+) RETURNING *;
+
+
+-- name: GetTaskByID :one
+SELECT * FROM tasks WHERE id = $1;  
+
+-- name: GetTasksByUserID :many
+SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at ASC;
+
+
+-- name: GetCollaborativeTasksByParentID :many
+SELECT u.email, u.username, t.*
+FROM tasks t
+JOIN users u ON t.user_id = u.id
+WHERE t.parent_id = $1 OR t.id = $1
+ORDER BY t.created_at ASC;
+
+-- name: UpdateTask :one
+UPDATE tasks
+SET title = $2,
+    end_date = $3,
+    description = $4,
+    priority = $5,
+    state = $6,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: DeleteTask :exec
+DELETE FROM tasks WHERE id = $1;
