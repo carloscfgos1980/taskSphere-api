@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os"
 
+	"github.com/carloscfgos1980/taskSphere-api/internal/database"
+
 	"github.com/joho/godotenv"
 )
 
@@ -14,6 +16,7 @@ var (
 )
 
 type Config struct {
+	DB        *database.Queries
 	DB_URL    string
 	Port      string
 	JWTSecret string

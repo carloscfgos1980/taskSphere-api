@@ -1,19 +1,20 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 
-	"context"
+	"github.com/carloscfgos1980/taskSphere-api/internal/database"
+	"github.com/carloscfgos1980/taskSphere-api/internal/handlers"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
+	_ "github.com/lib/pq"
 
 	"github.com/carloscfgos1980/taskSphere-api/internal/config"
 )
 
 func main() {
 	// create a context
-	ctx := context.Background()
 
 	// Load configuration from environment variables
 	cfg, err := config.LoadConfig()
@@ -21,12 +22,17 @@ func main() {
 		log.Fatalf("Error loading config: %v", err)
 	}
 
-	// Connect to the database using cfg.DB_URL
-	conn, err := pgx.Connect(ctx, cfg.DB_URL)
+	// Connect to the database
+	dbConn, err := sql.Open("postgres", cfg.DB_URL)
 	if err != nil {
-		log.Fatalf("Error connecting to the database: %v", err)
+		log.Fatalf("Error opening database: %s", err)
 	}
-	defer conn.Close(ctx)
+	defer dbConn.Close()
+
+	// Create a new database queries instance
+	db := database.New(dbConn)
+
+	cfg.DB = db
 
 	// Initialize the Gin router
 	var router *gin.Engine = gin.Default()
@@ -42,6 +48,8 @@ func main() {
 			"database": "connected",
 		})
 	})
+	// Register user-related routes
+	router.POST("/auth/register", handlers.CreateUser(cfg))
 
 	// Start the server on the specified port
 	if err := router.Run(":" + cfg.Port); err != nil {

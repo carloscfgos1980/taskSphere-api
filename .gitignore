@@ -1,3 +1,11 @@
 .env
 tmp/
 cmd/tmp/
+data/
+cmd/data/
+logs/
+cmd/logs/
+*.log
+*.tmp
+*.env
+cmd/*.env

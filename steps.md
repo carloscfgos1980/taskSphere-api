@@ -6,12 +6,16 @@ Get framework for go
 go get -u github.com/gin-gonic/gin
 
 Driver for postgres
-go get -u github.com/jackc/pgx/v5
+go get github.com/lib/pq
 
 Package to manage .env
 go get github.com/joho/godotenv
 
 * I got an issue with DB_URL coz api config is not in the same directory that .env
+
+Get package for uuid and hash password
+go get github.com/google/uuid
+go get github.com/alexedwards/argon2id
 
 1. Create config.go
 2. Create cmd/main.go
@@ -28,3 +32,20 @@ go get github.com/joho/godotenv
 ```bash
 sqlc generate
 ```
+
+## 2. Create user
+
+1. Create utils/utils.go
+This will hold auxiliar functions (HashPassword and IsStrongPassword)
+
+2. user handler /handlers/usr_handler.go
+2.1 structs and handler for creating a new user in the system
+2.2 UserRequest is the struct for the request body when creating a new user
+2.3 CreateUser is the handler for creating a new user in the system
+2.3.1 Return a handler function that can be used in the Gin router
+2.3.2 Bind the JSON request body to the UserRequest struct
+2.3.3 Validate the password strength
+2.3.4 Hash the password before storing it in the database
+2.3.5 Create the user in the database using the provided configuration and request data
+2.3.6 Return the created user as a response, excluding the password
+2.3.7 Send the response back to the client with a 200 OK status
