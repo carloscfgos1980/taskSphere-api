@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/mail"
 	"net/http"
 	"strings"
 	"time"
@@ -143,5 +144,29 @@ func IsStrongPassword(password string) error {
 	if !hasSpecial {
 		return errors.New("password must contain at least one special character")
 	}
+	return nil
+}
+
+// IsValidEmail checks if an email has a valid format.
+func IsValidEmail(email string) error {
+	email = strings.TrimSpace(email)
+	if email == "" {
+		return errors.New("email is required")
+	}
+
+	addr, err := mail.ParseAddress(email)
+	if err != nil || addr.Address != email {
+		return errors.New("invalid email format")
+	}
+
+	parts := strings.Split(email, "@")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return errors.New("invalid email format")
+	}
+
+	if !strings.Contains(parts[1], ".") {
+		return errors.New("invalid email format")
+	}
+
 	return nil
 }
