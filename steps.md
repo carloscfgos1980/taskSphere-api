@@ -109,3 +109,21 @@ AuthMiddleware is a Gin middleware function that validates JWT tokens in incomin
 3. If there is an error extracting the token (e.g., missing or malformed header), return a 401 Unauthorized response with an appropriate error message and abort the request processing.
 4. If the token is valid, set the user ID in the Gin context (e.g., using c.Set("userID", userID)) for use in subsequent handlers that require authentication.
 5. Call the next handler in the chain to continue processing the request after successful authentication.
+
+## 7. Create Task router /internal/handlers/task_handler.go
+
+1. Create functios to check request fields (CheckPriority, CheckState and CheckTag) /internal/utils/utils.go
+2. Struct of Task that represents a task in the system
+3. CreateTaskHandler is the handler for creating a new task in the system
+3.1 Define the expected parameters for creating a new task and the response structure
+3.2 Return a handler function that can be used in the Gin router
+3.3 Extract the user ID from the context (set by the authentication middleware)
+3.4 Bind the incoming JSON request to the parameters struct
+3.5 Validate the required fields and the values of priority, state, and tag if provided
+3.6 Create the task in the database using the provided configuration and parameters
+3.7 Prepare the response struct with the created task information
+3.8 Return the created task in the response with a 201 Created status
+
+4. Register task-related routes
+
+## 8.

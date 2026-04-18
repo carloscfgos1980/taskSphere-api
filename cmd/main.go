@@ -6,6 +6,7 @@ import (
 
 	"github.com/carloscfgos1980/taskSphere-api/internal/database"
 	"github.com/carloscfgos1980/taskSphere-api/internal/handlers"
+	"github.com/carloscfgos1980/taskSphere-api/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -51,8 +52,15 @@ func main() {
 	// Register user-related routes
 	router.POST("/auth/register", handlers.CreateUserHandler(cfg))
 	router.POST("/auth/login", handlers.LoginUserHandler(cfg))
+
+	// Register token-related routes
 	router.POST("/auth/refresh", handlers.RefreshTokenHandler(cfg))
 	router.POST("/auth/revoke", handlers.RevokeRefreshTokenHandler(cfg))
+
+	// Register task-related routes
+	taskRoutes := router.Group("/tasks")
+	taskRoutes.Use(middleware.AuthMiddleware(cfg))
+	taskRoutes.POST("/", handlers.CreateTaskHandler(cfg))
 
 	// Start the server on the specified port
 	if err := router.Run(":" + cfg.Port); err != nil {

@@ -176,3 +176,36 @@ func IsValidEmail(email string) error {
 
 	return nil
 }
+
+func CheckPriority(priority string) (resultPriority string, err error) {
+	switch priority {
+	case "":
+		return "medium", nil
+	case "low", "medium", "high", "urgent":
+		return priority, nil
+	default:
+		return "", fmt.Errorf("Invalid priority value: %s", priority)
+	}
+}
+
+func CheckState(state string) (resultState string, err error) {
+	switch state {
+	case "":
+		return "pending", nil
+	case "pending", "in progress", "done", "cancelled":
+		return state, nil
+	default:
+		return "", fmt.Errorf("Invalid state value: %s", state)
+	}
+}
+
+func CheckTag(tag string) (resultTag string, err error) {
+	switch tag {
+	case "":
+		return "private", nil
+	case "private", "collaborative", "public":
+		return tag, nil
+	default:
+		return "", fmt.Errorf("Invalid tag value: %s", tag)
+	}
+}
