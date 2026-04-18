@@ -5,12 +5,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"net/mail"
 	"net/http"
+	"net/mail"
 	"strings"
 	"time"
 
 	"github.com/alexedwards/argon2id"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
@@ -92,16 +93,21 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 }
 
 // GetBearerToken -
-func GetBearerToken(headers http.Header) (string, error) {
-	authHeader := headers.Get("Authorization")
+func GetBearerToken(c *gin.Context) (string, error) {
+	// Extract the Authorization header from the incoming request
+	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+		c.Abort()
 		return "", ErrNoAuthHeaderIncluded
 	}
+	// Check if the Authorization header is in the correct format (e.g., "Bearer <token>")
 	splitAuth := strings.Split(authHeader, " ")
 	if len(splitAuth) < 2 || splitAuth[0] != "Bearer" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "malformed authorization header"})
+		c.Abort()
 		return "", errors.New("malformed authorization header")
 	}
-
 	return splitAuth[1], nil
 }
 

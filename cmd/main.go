@@ -51,6 +51,8 @@ func main() {
 	// Register user-related routes
 	router.POST("/auth/register", handlers.CreateUserHandler(cfg))
 	router.POST("/auth/login", handlers.LoginUserHandler(cfg))
+	router.POST("/auth/refresh", handlers.RefreshTokenHandler(cfg))
+	router.POST("/auth/revoke", handlers.RevokeRefreshTokenHandler(cfg))
 
 	// Start the server on the specified port
 	if err := router.Run(":" + cfg.Port); err != nil {

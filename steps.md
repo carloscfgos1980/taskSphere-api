@@ -73,3 +73,39 @@ This will hold auxiliar functions (ValidateJWT and MakeRefreshToken)
 2.2.10 Send the response back to the client with a 200 OK status
 
 3. Register user-related routes
+
+## 4. Refresh token
+
+1. function to get token from the request /internal/utils/utils.go
+
+2. Handler to refresh token /internal/handlers/refresh_handler.go
+2.1 Define a response struct to return the new access token in the response body
+2.2 Return a handler function that can be used in the Gin router
+2.3 Extract the refresh token from the Authorization header of the incoming request
+2.4 Retrieve the user associated with the provided refresh token from the database
+2.5 Generate a new JWT token for the user to authenticate future requests
+2.6 Return the new JWT token in the response to the client
+
+3. Register token-related routes /cmd/maing.go
+
+## 5. Revoke refresh token
+
+1. RevokeRefreshTokenHandler is the handler for revoking refresh tokens /internal/handlers/refresh_handler.go
+1.1 Return a handler function that can be used in the Gin router
+1.2 Extract the refresh token from the Authorization header of the incoming request
+1.3 Revoke the provided refresh token in the database to prevent further use
+1.4 Return a success message in the response to the client
+
+2. Register token-related routes /cmd/maing.go
+
+## 6. Middleware
+
+/internal/middleware/auth_middleware.go
+
+AuthMiddleware is a Gin middleware function that validates JWT tokens in incoming requests to protect routes that require authentication. It checks for the presence of a valid JWT token in the Authorization header of the request, verifies the token using the secret key from the configuration, and sets the user ID in the Gin context for use in subsequent handlers if the token is valid. If the token is missing or invalid, it returns a 401 Unauthorized response and aborts further processing of the request.
+
+1. Return a handler function that can be used in the Gin router as middleware for routes that require authentication.
+2. Extract the Authorization header from the incoming request
+3. If there is an error extracting the token (e.g., missing or malformed header), return a 401 Unauthorized response with an appropriate error message and abort the request processing.
+4. If the token is valid, set the user ID in the Gin context (e.g., using c.Set("userID", userID)) for use in subsequent handlers that require authentication.
+5. Call the next handler in the chain to continue processing the request after successful authentication.
