@@ -13,7 +13,8 @@ VALUES (
     $7,
     $8,
     $9
-) RETURNING *;
+) 
+RETURNING *;
 
 
 -- name: GetTaskByID :one
@@ -21,6 +22,13 @@ SELECT * FROM tasks WHERE id = $1;
 
 -- name: GetTasksByUserID :many
 SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at ASC;
+
+-- name: GetPublicTasks :many
+SELECT t.*, u.email, u.username
+FROM tasks t
+JOIN users u ON t.user_id = u.id
+WHERE t.tag = 'public'
+ORDER BY t.created_at ASC;
 
 
 -- name: GetCollaborativeTasksByParentID :many

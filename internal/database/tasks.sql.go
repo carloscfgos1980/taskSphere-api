@@ -28,7 +28,8 @@ VALUES (
     $7,
     $8,
     $9
-) RETURNING id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id, task_editors
+) 
+RETURNING id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id, task_editors
 `
 
 type CreateTaskParams struct {
@@ -131,6 +132,69 @@ func (q *Queries) GetCollaborativeTasksByParentID(ctx context.Context, parentID 
 			&i.State,
 			&i.ParentID,
 			pq.Array(&i.TaskEditors),
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPublicTasks = `-- name: GetPublicTasks :many
+SELECT t.id, t.created_at, t.updated_at, t.user_id, t.title, t.end_date, t.description, t.priority, t.tag, t.state, t.parent_id, t.task_editors, u.email, u.username
+FROM tasks t
+JOIN users u ON t.user_id = u.id
+WHERE t.tag = 'public'
+ORDER BY t.created_at ASC
+`
+
+type GetPublicTasksRow struct {
+	ID          uuid.UUID
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	UserID      uuid.UUID
+	Title       string
+	EndDate     time.Time
+	Description string
+	Priority    string
+	Tag         string
+	State       string
+	ParentID    uuid.NullUUID
+	TaskEditors []uuid.UUID
+	Email       string
+	Username    string
+}
+
+func (q *Queries) GetPublicTasks(ctx context.Context) ([]GetPublicTasksRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPublicTasks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPublicTasksRow
+	for rows.Next() {
+		var i GetPublicTasksRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserID,
+			&i.Title,
+			&i.EndDate,
+			&i.Description,
+			&i.Priority,
+			&i.Tag,
+			&i.State,
+			&i.ParentID,
+			pq.Array(&i.TaskEditors),
+			&i.Email,
+			&i.Username,
 		); err != nil {
 			return nil, err
 		}

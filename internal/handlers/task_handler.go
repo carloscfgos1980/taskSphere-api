@@ -121,7 +121,7 @@ func CreateTaskHandler(cfg *config.Config) gin.HandlerFunc {
 }
 
 // GetTasksByIdHandler is the handler for retrieving a task by its ID
-func GetTasksByIdHandler(cfg *config.Config) gin.HandlerFunc {
+func GetTaskByIdHandler(cfg *config.Config) gin.HandlerFunc {
 	// Return a handler function that can be used in the Gin router
 	return func(c *gin.Context) {
 		// Extract the task ID from the URL parameters and validate it
@@ -169,5 +169,174 @@ func GetTasksByIdHandler(cfg *config.Config) gin.HandlerFunc {
 		}
 		// Return the retrieved task in the response with a 200 OK status
 		c.JSON(http.StatusOK, response)
+	}
+}
+
+// GetTasksHandler is the handler for retrieving tasks based on the provided tag and user access
+func GetTasksHandler(cfg *config.Config) gin.HandlerFunc {
+	// Return a handler function that can be used in the Gin router
+	return func(c *gin.Context) {
+		// Extract the tag query parameter and validate it
+		paramTag := c.Query("tag")
+		// Check if the tag parameter is provided and valid
+		tag, err := utils.CheckTag(paramTag)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		// Extract the user ID from the context (set by the authentication middleware)
+		userID, exists := c.Get("userID")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
+			return
+		}
+		// Retrieve tasks based on the tag and user access level using the provided configuration
+		switch tag {
+		// For private tasks, retrieve only the tasks that are owned by the user from the database and return them in the response
+		case "private":
+			// Retrieve tasks that are private to the user from the database
+			privateTasks, err := cfg.DB.GetTasksByUserID(c, userID.(uuid.UUID))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve tasks"})
+				return
+			}
+			// If no private tasks are found for the user, return a 404 Not Found response
+			if len(privateTasks) == 0 {
+				c.JSON(http.StatusNotFound, gin.H{"error": "No tasks found for the user"})
+				return
+			}
+			// Prepare the response struct with the retrieved tasks information
+			response := make([]Task, len(privateTasks))
+			for i, task := range privateTasks {
+				response[i] = Task{
+					ID:          task.ID,
+					CreatedAt:   task.CreatedAt,
+					UpdatedAt:   task.UpdatedAt,
+					UserID:      task.UserID,
+					Title:       task.Title,
+					EndDate:     task.EndDate,
+					Description: task.Description,
+					Priority:    task.Priority,
+					Tag:         task.Tag,
+					State:       task.State,
+					ParentID:    task.ParentID.UUID,
+				}
+			}
+			// Return the retrieved tasks in the response with a 200 OK status
+			c.JSON(http.StatusOK, response)
+			return
+		// For collaborative tasks, the user must provide a parent_id query parameter to specify which collaborative tasks to retrieve
+		case "collaborative":
+			// Extract the parent_id query parameter and validate it
+			stringParentID := c.Query("parent_id")
+			if stringParentID == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "parent_id query parameter is required for collaborative tasks"})
+				return
+			}
+			// Parse the parent_id string into a UUID format
+			parentID, err := uuid.Parse(stringParentID)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid parent_id"})
+				return
+			}
+			// Retrieve collaborative tasks that are associated with the specified parent ID from the database
+			collaborativeTasks, err := cfg.DB.GetCollaborativeTasksByParentID(c, uuid.NullUUID{UUID: parentID, Valid: true})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve tasks"})
+				return
+			}
+			// If no collaborative tasks are found for the specified parent ID, return a 404 Not Found response
+			if len(collaborativeTasks) == 0 {
+				c.JSON(http.StatusNotFound, gin.H{"error": "No collaborative tasks found for the parent task"})
+				return
+			}
+			// Prepare the response struct with the retrieved collaborative tasks information, including user details and task editors
+			type taskResponse struct {
+				ID          uuid.UUID   `json:"id"`
+				CreatedAt   time.Time   `json:"created_at"`
+				UpdatedAt   time.Time   `json:"updated_at"`
+				UserID      uuid.UUID   `json:"user_id"`
+				Username    string      `json:"username"`
+				Email       string      `json:"email"`
+				Title       string      `json:"title"`
+				EndDate     time.Time   `json:"end_date"`
+				Description string      `json:"description"`
+				Priority    string      `json:"priority"`
+				Tag         string      `json:"tag"`
+				State       string      `json:"state"`
+				ParentID    uuid.UUID   `json:"parent_id,omitempty"`
+				TaskEditors []uuid.UUID `json:"task_editors"`
+			}
+			// Check if the user making the request is the owner of any of the collaborative tasks or has access to them
+			isAuthorized := false
+			var response []taskResponse
+			for _, task := range collaborativeTasks {
+				if task.UserID == userID.(uuid.UUID) {
+					isAuthorized = true
+				}
+				response = append(response, taskResponse{
+					ID:          task.ID,
+					CreatedAt:   task.CreatedAt,
+					UpdatedAt:   task.UpdatedAt,
+					UserID:      task.UserID,
+					Username:    task.Username,
+					Email:       task.Email,
+					Title:       task.Title,
+					EndDate:     task.EndDate,
+					Description: task.Description,
+					Priority:    task.Priority,
+					Tag:         task.Tag,
+					State:       task.State,
+					ParentID:    task.ParentID.UUID,
+					TaskEditors: task.TaskEditors,
+				})
+			}
+			// If the user does not have access to any of the collaborative tasks, return a 403 Forbidden response
+			if !isAuthorized {
+				c.JSON(http.StatusForbidden, gin.H{"error": "You do not have access to these tasks"})
+				return
+			}
+			// Return the retrieved collaborative tasks in the response with a 200 OK status
+			c.JSON(http.StatusOK, response)
+			return
+		// For public tasks, retrieve all tasks that are tagged as public from the database and return them in the response
+		case "public":
+			// Retrieve public tasks from the database
+			publicTasks, err := cfg.DB.GetPublicTasks(c)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve tasks"})
+				return
+			}
+			// If no public tasks are found, return a 404 Not Found response
+			if len(publicTasks) == 0 {
+				c.JSON(http.StatusNotFound, gin.H{"error": "No public tasks found"})
+				return
+			}
+			// Prepare the response struct with the retrieved public tasks information, including user details
+			response := make([]Task, len(publicTasks))
+			for i, task := range publicTasks {
+				response[i] = Task{
+					ID:          task.ID,
+					CreatedAt:   task.CreatedAt,
+					UpdatedAt:   task.UpdatedAt,
+					UserID:      task.UserID,
+					Title:       task.Title,
+					EndDate:     task.EndDate,
+					Description: task.Description,
+					Priority:    task.Priority,
+					Tag:         task.Tag,
+					State:       task.State,
+					ParentID:    task.ParentID.UUID,
+				}
+			}
+			// Return the retrieved public tasks in the response with a 200 OK status
+			c.JSON(http.StatusOK, response)
+			return
+		// If the tag value is not valid, return a 400 Bad Request response
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tag value. It must be 'private', 'collaborative', or 'public'"})
+			return
+		}
+
 	}
 }

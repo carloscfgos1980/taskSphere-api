@@ -61,7 +61,8 @@ func main() {
 	taskRoutes := router.Group("/tasks")
 	taskRoutes.Use(middleware.AuthMiddleware(cfg))
 	taskRoutes.POST("/", handlers.CreateTaskHandler(cfg))
-	taskRoutes.GET("/:taskID", handlers.GetTasksByIdHandler(cfg))
+	taskRoutes.GET("/:taskID", handlers.GetTaskByIdHandler(cfg))
+	taskRoutes.GET("/", handlers.GetTasksHandler(cfg))
 
 	// Start the server on the specified port
 	if err := router.Run(":" + cfg.Port); err != nil {

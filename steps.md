@@ -141,4 +141,38 @@ AuthMiddleware is a Gin middleware function that validates JWT tokens in incomin
 
 2. Register task-related routes /cmd/main.go
 
-## 9
+## 9. Get Tasks Handler
+
+1-> GetTasksHandler is the handler for retrieving tasks based on the provided tag and user access
+1.1 Return a handler function that can be used in the Gin router
+1.2 Extract the tag query parameter and validate it
+1.3 Extract the user ID from the context (set by the authentication middleware)
+
+1.4 Retrieve tasks based on the tag and user access level using the provided configuration. Here I used **switch** as condictional
+1.4.1 For private tasks, retrieve only the tasks that are owned by the user from the database and return them in the response
+1.4.2 Retrieve tasks that are private to the user from the database
+1.4.3 If no private tasks are found for the user, return a 404 Not Found response
+1.4.4 Prepare the response struct with the retrieved tasks information
+1.4.5 Return the retrieved tasks in the response with a 200 OK status
+
+1.5 For collaborative tasks, the user must provide a parent_id query parameter to specify which collaborative tasks to retrieve
+1.5.1 Extract the parent_id query parameter and validate it
+1.5.2 Parse the parent_id string into a UUID format
+1.5.3 Retrieve collaborative tasks that are associated with the specified parent ID from the database
+1.5.4 If no collaborative tasks are found for the specified parent ID, return a 404 Not Found response
+1.5.5 Prepare the response struct with the retrieved collaborative tasks information, including user details and task editors
+1.5.6 Check if the user making the request is the owner of any of the collaborative tasks or has access to them
+1.5.7 If the user does not have access to any of the collaborative tasks, return a 403 Forbidden response
+1.5.8 Return the retrieved collaborative tasks in the response with a 200 OK status
+
+1.6 For public tasks, retrieve all tasks that are tagged as public from the database and return them in the response
+1.6.1 Retrieve public tasks from the database
+1.6.2 If no public tasks are found, return a 404 Not Found response
+1.6.3 Prepare the response struct with the retrieved public tasks information, including user details
+1.6.4 Return the retrieved public tasks in the response with a 200 OK status
+
+1.7 If the tag value is not valid, return a 400 Bad Request response
+
+2-> Register task-related routes
+
+## 10. Update a task
