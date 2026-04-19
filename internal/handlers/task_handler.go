@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -116,5 +117,57 @@ func CreateTaskHandler(cfg *config.Config) gin.HandlerFunc {
 		}
 		// Return the created task in the response with a 201 Created status
 		c.JSON(http.StatusCreated, response)
+	}
+}
+
+// GetTasksByIdHandler is the handler for retrieving a task by its ID
+func GetTasksByIdHandler(cfg *config.Config) gin.HandlerFunc {
+	// Return a handler function that can be used in the Gin router
+	return func(c *gin.Context) {
+		// Extract the task ID from the URL parameters and validate it
+		taskIDString := c.Param("taskID")
+		// Parse the task ID string into a UUID format
+		taskID, err := uuid.Parse(taskIDString)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+			return
+		}
+		// Retrieve the task from the database using the provided configuration and task ID
+		dbTask, err := cfg.DB.GetTaskByID(c, taskID)
+		if err != nil {
+			log.Printf("Error retrieving task: %v", err)
+			if err.Error() == "sql: no rows in result set" {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve task"})
+			return
+		}
+		// Check if the user making the request is the owner of the task or has access to it
+		userID, exists := c.Get("userID")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
+			return
+		}
+		if dbTask.UserID != userID.(uuid.UUID) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You do not have access to this task"})
+			return
+		}
+		// Prepare the response struct with the retrieved task information
+		response := Task{
+			ID:          dbTask.ID,
+			CreatedAt:   dbTask.CreatedAt,
+			UpdatedAt:   dbTask.UpdatedAt,
+			UserID:      dbTask.UserID,
+			Title:       dbTask.Title,
+			EndDate:     dbTask.EndDate,
+			Description: dbTask.Description,
+			Priority:    dbTask.Priority,
+			Tag:         dbTask.Tag,
+			State:       dbTask.State,
+			ParentID:    dbTask.ParentID.UUID,
+		}
+		// Return the retrieved task in the response with a 200 OK status
+		c.JSON(http.StatusOK, response)
 	}
 }

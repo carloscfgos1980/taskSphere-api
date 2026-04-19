@@ -126,4 +126,19 @@ AuthMiddleware is a Gin middleware function that validates JWT tokens in incomin
 
 4. Register task-related routes
 
-## 8.
+## 8. Get Task by Id
+
+/internal/handlers/task_handler.go
+
+1. GetTasksByIdHandler is the handler for retrieving a task by its ID
+1.1 Return a handler function that can be used in the Gin router
+1.2 Extract the task ID from the URL parameters and validate it
+1.3 Parse the task ID string into a UUID format
+1.4 Retrieve the task from the database using the provided configuration and task ID
+1.5 Check if the user making the request is the owner of the task or has access to it
+1.6 Prepare the response struct with the retrieved task information
+1.7 Return the retrieved task in the response with a 200 OK status
+
+2. Register task-related routes /cmd/main.go
+
+## 9
