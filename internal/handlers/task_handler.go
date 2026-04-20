@@ -340,3 +340,58 @@ func GetTasksHandler(cfg *config.Config) gin.HandlerFunc {
 
 	}
 }
+
+// GetCollaborativeTasksHandler is the handler for retrieving collaborative tasks that are associated with a specified parent ID
+func GetCollaborativeTasksHandler(cfg *config.Config) gin.HandlerFunc {
+	// Return a handler function that can be used in the Gin router
+	return func(c *gin.Context) {
+		// Extract the user ID from the context (set by the authentication middleware)
+		userID, exists := c.Get("userID")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
+			return
+		}
+		// Check if the user making the request is valid and exists in the database
+		_, err := cfg.DB.GetUserByID(c, userID.(uuid.UUID))
+		if err != nil {
+			if err.Error() == "sql: no rows in result set" {
+				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
+			return
+		}
+		// Retrieve collaborative tasks that are associated with the specified parent ID from the database
+		collaborativeTasks, err := cfg.DB.GetCollaborativeTasks(c)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve tasks"})
+			return
+		}
+		// If no collaborative tasks are found for the specified parent ID, return a 404 Not Found response
+		if len(collaborativeTasks) == 0 {
+			c.JSON(http.StatusNotFound, gin.H{"error": "No collaborative tasks found"})
+			return
+		}
+		// Prepare the response struct with the retrieved collaborative tasks information, including user details
+		type taskResponse struct {
+			ID          uuid.UUID `json:"id"`
+			Title       string    `json:"title"`
+			Description string    `json:"description"`
+			Username    string    `json:"username"`
+			Email       string    `json:"email"`
+		}
+		// loop through the retrieved collaborative tasks and then prepare the response struct with the task information and user details
+		var response []taskResponse
+		for _, task := range collaborativeTasks {
+			response = append(response, taskResponse{
+				ID:          task.ID,
+				Title:       task.Title,
+				Description: task.Description,
+				Username:    task.Username,
+				Email:       task.Email,
+			})
+		}
+		// Return the retrieved collaborative tasks in the response with a 200 OK status
+		c.JSON(http.StatusOK, response)
+	}
+}

@@ -175,4 +175,21 @@ AuthMiddleware is a Gin middleware function that validates JWT tokens in incomin
 
 2-> Register task-related routes
 
-## 10. Update a task
+## 10. Get collaborative tasks parent ID
+
+1. sql query to get a list of collaborative task parents
+1.1 Generate go code with sqlc command
+
+2. GetCollaborativeTasksHandler is the handler for retrieving collaborative tasks that are associated with a specified parent ID
+2.1 Return a handler function that can be used in the Gin router
+2.2 Extract the user ID from the context (set by the authentication middleware)
+2.3 Check if the user making the request is valid and exists in the database
+2.4 Retrieve collaborative tasks that are associated with the specified parent ID from the database
+2.5 If no collaborative tasks are found for the specified parent ID, return a 404 Not Found response
+2.6 Prepare the response struct with the retrieved collaborative tasks information, including user details
+2.7 loop through the retrieved collaborative tasks and then prepare the response struct with the task information and user details
+2.8 Return the retrieved collaborative tasks in the response with a 200 OK status
+
+3. Register task-related routes
+
+## 11. Update task

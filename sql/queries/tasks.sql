@@ -38,6 +38,13 @@ JOIN users u ON t.user_id = u.id
 WHERE t.parent_id = $1 OR t.id = $1
 ORDER BY t.created_at ASC;
 
+-- name: GetCollaborativeTasks :many
+SELECT u.email, u.username, t.*
+FROM tasks t
+JOIN users u ON t.user_id = u.id
+WHERE t.parent_id IS NULL AND t.tag = 'collaborative'
+ORDER BY t.created_at ASC;
+
 -- name: UpdateTask :one
 UPDATE tasks
 SET title = $2,
