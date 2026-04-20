@@ -65,6 +65,7 @@ func main() {
 	taskRoutes.GET("/", handlers.GetTasksHandler(cfg))
 	taskRoutes.GET("/collaborative", handlers.GetCollaborativeTasksHandler(cfg))
 	taskRoutes.PUT("/:taskID", handlers.UpdateTaskHandler(cfg))
+	taskRoutes.DELETE("/:taskID", handlers.DeleteTaskHandler(cfg))
 
 	// Start the server on the specified port
 	if err := router.Run(":" + cfg.Port); err != nil {

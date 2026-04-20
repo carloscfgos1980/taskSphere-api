@@ -523,3 +523,81 @@ func UpdateTaskHandler(cfg *config.Config) gin.HandlerFunc {
 		c.JSON(http.StatusOK, response)
 	}
 }
+
+func DeleteTaskHandler(cfg *config.Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Extract the task ID from the URL parameters and validate it
+		taskIDString := c.Param("taskID")
+		taskID, err := uuid.Parse(taskIDString)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+			return
+		}
+		// Extract the user ID from the context (set by the authentication middleware)
+		userID, exists := c.Get("userID")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
+			return
+		}
+		// Retrieve the task from the database using the provided configuration and task ID to check if the user has access to delete the task
+		dbTask, err := cfg.DB.GetTaskByID(c, taskID)
+		if err != nil {
+			log.Printf("Error retrieving task: %v", err)
+			if err.Error() == "sql: no rows in result set" {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve task"})
+			return
+		}
+		// Check if the user making the request is the owner of the task or has access to it (either as an editor or as a collaborator) to determine if they are authorized to delete the task
+		isAuthorized := dbTask.UserID == userID || dbTask.ID == taskID
+
+		if !isAuthorized {
+			for _, editorID := range dbTask.TaskEditors {
+				if editorID == userID {
+					isAuthorized = true
+					break
+				}
+			}
+		}
+		// If the user is not authorized, respond with a 403 Forbidden error
+		if !isAuthorized {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You do not have access to delete this task"})
+			return
+		}
+
+		isAdmin := false
+		if dbTask.ParentID.UUID != uuid.Nil && dbTask.Tag == "collaborative" {
+			isAdmin = true
+		}
+
+		if isAdmin {
+			collaborativeTasks, err := cfg.DB.GetCollaborativeTasksByParentID(c, uuid.NullUUID{UUID: taskID, Valid: true})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve collaborative tasks"})
+				return
+			}
+			for _, task := range collaborativeTasks {
+				err = cfg.DB.DeleteTask(c, task.ID)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete task"})
+					return
+				}
+			}
+			c.JSON(http.StatusOK, gin.H{"message": "Parent task and its collaborative tasks deleted successfully"})
+			return
+
+		} else {
+			// Delete the task from the database using the provided configuration and task ID, and then return a success message in the response
+			err = cfg.DB.DeleteTask(c, taskID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete task"})
+				return
+			}
+			// Return a success message in the response with a 200 OK status
+			c.JSON(http.StatusOK, gin.H{"message": "Task deleted successfully"})
+		}
+
+	}
+}
