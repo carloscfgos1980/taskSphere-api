@@ -49,6 +49,16 @@ func CreateTaskHandler(cfg *config.Config) gin.HandlerFunc {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
 			return
 		}
+		// Check if the user making the request is valid and exists in the database
+		_, err := cfg.DB.GetUserByID(c, userID.(uuid.UUID))
+		if err != nil {
+			if err.Error() == "sql: no rows in result set" {
+				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
+			return
+		}
 		// Bind the incoming JSON request to the parameters struct
 		var params parameters
 		if err := c.ShouldBindJSON(&params); err != nil {
@@ -392,6 +402,124 @@ func GetCollaborativeTasksHandler(cfg *config.Config) gin.HandlerFunc {
 			})
 		}
 		// Return the retrieved collaborative tasks in the response with a 200 OK status
+		c.JSON(http.StatusOK, response)
+	}
+}
+
+// UpdateTaskHandler is the handler for updating an existing task in the system
+func UpdateTaskHandler(cfg *config.Config) gin.HandlerFunc {
+	// Define a struct to hold the parameters for updating the task
+	type parameters struct {
+		Title       *string    `json:"title,omitempty"`
+		EndDate     *time.Time `json:"end_date,omitempty"`
+		Description *string    `json:"description,omitempty"`
+		Priority    *string    `json:"priority,omitempty"`
+		State       *string    `json:"state,omitempty"`
+	}
+	// Return a handler function that can be used in the Gin router
+	return func(c *gin.Context) {
+		// Extract the task ID from the URL parameters and validate it
+		taskIDString := c.Param("taskID")
+		taskID, err := uuid.Parse(taskIDString)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+			return
+		}
+		// Extract the user ID from the context (set by the authentication middleware)
+		userID, exists := c.Get("userID")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
+			return
+		}
+
+		// Retrieve the task from the database using the provided configuration and task ID to check if the user has access to update the task
+		dbTask, err := cfg.DB.GetTaskByID(c, taskID)
+		if err != nil {
+			log.Printf("Error retrieving task: %v", err)
+			if err.Error() == "sql: no rows in result set" {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve task"})
+			return
+		}
+		// Retrieve the task admin information from the database to check if the user has access to update the task
+		admon, err := cfg.DB.GetTaskByID(c, taskID)
+		if err != nil {
+			log.Printf("Error retrieving task admin: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve task admin"})
+			return
+		}
+		// Check if the user making the request is the owner of the task or has access to it (either as an editor or as a collaborator) to determine if they are authorized to update the task
+		isAuthorized := dbTask.UserID == userID || admon.ID == taskID
+
+		if !isAuthorized {
+			for _, editorID := range dbTask.TaskEditors {
+				if editorID == userID {
+					isAuthorized = true
+					break
+				}
+			}
+		}
+		// If the user is not authorized, respond with a 403 Forbidden error
+		if !isAuthorized {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You do not have access to update this task"})
+			return
+		}
+		// Bind the incoming JSON request to the parameters struct
+		var params parameters
+		if err := c.ShouldBindJSON(&params); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		// Set missing fields to their current values in the database to ensure that only the provided fields are updated while the others remain unchanged
+		title := dbTask.Title
+		if params.Title != nil {
+			title = *params.Title
+		}
+		endDate := dbTask.EndDate
+		if params.EndDate != nil {
+			endDate = *params.EndDate
+		}
+		description := dbTask.Description
+		if params.Description != nil {
+			description = *params.Description
+		}
+		priority := dbTask.Priority
+		if params.Priority != nil {
+			priority = *params.Priority
+		}
+		state := dbTask.State
+		if params.State != nil {
+			state = *params.State
+		}
+		// Update the task in the database using the provided configuration and the updated fields, and then return the updated task information in the response
+		updatedTaks, err := cfg.DB.UpdateTask(c, database.UpdateTaskParams{
+			ID:          taskID,
+			Title:       title,
+			EndDate:     endDate,
+			Description: description,
+			Priority:    priority,
+			State:       state,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update task"})
+			return
+		}
+		// Prepare the response struct with the updated task information
+		response := Task{
+			ID:          updatedTaks.ID,
+			CreatedAt:   updatedTaks.CreatedAt,
+			UpdatedAt:   updatedTaks.UpdatedAt,
+			UserID:      updatedTaks.UserID,
+			Title:       updatedTaks.Title,
+			EndDate:     updatedTaks.EndDate,
+			Description: updatedTaks.Description,
+			Priority:    updatedTaks.Priority,
+			Tag:         updatedTaks.Tag,
+			State:       updatedTaks.State,
+		}
+		// Return the updated task in the response with a 200 OK status
 		c.JSON(http.StatusOK, response)
 	}
 }

@@ -193,3 +193,22 @@ AuthMiddleware is a Gin middleware function that validates JWT tokens in incomin
 3. Register task-related routes
 
 ## 11. Update task
+
+1. UpdateTaskHandler is the handler for updating an existing task in the system
+1.1 Define a struct to hold the parameters for updating the task. **Here I use pointer to the struct fields** in order to know if the field in the request is missing or an empty string
+1.2 Return a handler function that can be used in the Gin router
+1.3 Extract the task ID from the URL parameters and validate it
+1.4 Extract the user ID from the context (set by the authentication middleware)
+1.5 Retrieve the task from the database using the provided configuration and task ID to check if the user has access to update the task
+1.6 Retrieve the task admin information from the database to check if the user has access to update the task
+1.7 Check if the user making the request is the owner of the task or has access to it (either as an editor or as a collaborator) to determine if they are authorized to update the task
+1.8 If the user is not authorized, respond with a 403 Forbidden error
+1.9 Bind the incoming JSON request to the parameters struct
+1.10 Set missing fields to their current values in the database to ensure that only the provided fields are updated while the others remain unchanged
+1.11 Update the task in the database using the provided configuration and the updated fields, and then return the updated task information in the response
+1.12 Prepare the response struct with the updated task information
+1.13 Return the updated task in the response with a 200 OK status
+
+2. Register task-related routes
+
+## 12. Delete task
