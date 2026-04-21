@@ -83,69 +83,6 @@ func (q *Queries) DeleteTask(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const getCollaborativeTasks = `-- name: GetCollaborativeTasks :many
-SELECT u.email, u.username, t.id, t.created_at, t.updated_at, t.user_id, t.title, t.end_date, t.description, t.priority, t.tag, t.state, t.parent_id, t.task_editors
-FROM tasks t
-JOIN users u ON t.user_id = u.id
-WHERE t.parent_id IS NULL AND t.tag = 'collaborative'
-ORDER BY t.created_at ASC
-`
-
-type GetCollaborativeTasksRow struct {
-	Email       string
-	Username    string
-	ID          uuid.UUID
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	UserID      uuid.UUID
-	Title       string
-	EndDate     time.Time
-	Description string
-	Priority    string
-	Tag         string
-	State       string
-	ParentID    uuid.NullUUID
-	TaskEditors []uuid.UUID
-}
-
-func (q *Queries) GetCollaborativeTasks(ctx context.Context) ([]GetCollaborativeTasksRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCollaborativeTasks)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetCollaborativeTasksRow
-	for rows.Next() {
-		var i GetCollaborativeTasksRow
-		if err := rows.Scan(
-			&i.Email,
-			&i.Username,
-			&i.ID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.UserID,
-			&i.Title,
-			&i.EndDate,
-			&i.Description,
-			&i.Priority,
-			&i.Tag,
-			&i.State,
-			&i.ParentID,
-			pq.Array(&i.TaskEditors),
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getCollaborativeTasksByParentID = `-- name: GetCollaborativeTasksByParentID :many
 SELECT u.email, u.username, t.id, t.created_at, t.updated_at, t.user_id, t.title, t.end_date, t.description, t.priority, t.tag, t.state, t.parent_id, t.task_editors
 FROM tasks t
@@ -180,6 +117,69 @@ func (q *Queries) GetCollaborativeTasksByParentID(ctx context.Context, parentID 
 	var items []GetCollaborativeTasksByParentIDRow
 	for rows.Next() {
 		var i GetCollaborativeTasksByParentIDRow
+		if err := rows.Scan(
+			&i.Email,
+			&i.Username,
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.UserID,
+			&i.Title,
+			&i.EndDate,
+			&i.Description,
+			&i.Priority,
+			&i.Tag,
+			&i.State,
+			&i.ParentID,
+			pq.Array(&i.TaskEditors),
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getParentTasks = `-- name: GetParentTasks :many
+SELECT u.email, u.username, t.id, t.created_at, t.updated_at, t.user_id, t.title, t.end_date, t.description, t.priority, t.tag, t.state, t.parent_id, t.task_editors
+FROM tasks t
+JOIN users u ON t.user_id = u.id
+WHERE t.parent_id IS NULL AND t.tag = 'collaborative'
+ORDER BY t.created_at ASC
+`
+
+type GetParentTasksRow struct {
+	Email       string
+	Username    string
+	ID          uuid.UUID
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	UserID      uuid.UUID
+	Title       string
+	EndDate     time.Time
+	Description string
+	Priority    string
+	Tag         string
+	State       string
+	ParentID    uuid.NullUUID
+	TaskEditors []uuid.UUID
+}
+
+func (q *Queries) GetParentTasks(ctx context.Context) ([]GetParentTasksRow, error) {
+	rows, err := q.db.QueryContext(ctx, getParentTasks)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetParentTasksRow
+	for rows.Next() {
+		var i GetParentTasksRow
 		if err := rows.Scan(
 			&i.Email,
 			&i.Username,

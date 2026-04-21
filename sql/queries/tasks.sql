@@ -38,7 +38,7 @@ JOIN users u ON t.user_id = u.id
 WHERE t.parent_id = $1 OR t.id = $1
 ORDER BY t.created_at ASC;
 
--- name: GetCollaborativeTasks :many
+-- name: GetParentTasks :many
 SELECT u.email, u.username, t.*
 FROM tasks t
 JOIN users u ON t.user_id = u.id

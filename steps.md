@@ -212,3 +212,18 @@ AuthMiddleware is a Gin middleware function that validates JWT tokens in incomin
 2. Register task-related routes
 
 ## 12. Delete task
+
+1. DeleteTaskHandler is the handler for deleting an existing task from the system
+1.1 Extract the task ID from the URL parameters and validate it
+1.2 Extract the user ID from the context (set by the authentication middleware)
+1.3 Retrieve the task from the database using the provided configuration and task ID to check if the user has access to delete the task
+1.4 Check if the user making the request is the owner of the task or has access to it to determine if they are authorized to delete the task
+1.5 Check if the task is a parent task of a collaborative task by checking if the ParentID is null and the tag is "collaborative". If it is a parent task, then delete all the associated collaborative tasks as well. If it is not a parent task, then just delete the task itself.
+1.6 If the task is a parent task of a collaborative task, retrieve all the associated collaborative tasks from the database and then delete them along with the parent task.
+1.7 Delete the parent task and all its associated collaborative tasks from the database using the provided configuration and task ID, and then return a success message in the response. Loop over collaboration list of tasks
+1.8 respond with a success message in the response with a 200 OK status after deleting the parent task and all its associated collaborative tasks
+1.9 If the task is not a parent task of a collaborative task, then just delete the task itself from the database using the provided configuration and task ID, and then return a success message in the response
+1.10 Delete the task from the database using the provided configuration and task ID
+1.11 Return a success message in the response with a 200 OK status
+
+2. Register task-related routes

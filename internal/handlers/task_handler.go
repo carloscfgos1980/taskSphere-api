@@ -260,6 +260,7 @@ func GetTasksHandler(cfg *config.Config) gin.HandlerFunc {
 				c.JSON(http.StatusNotFound, gin.H{"error": "No collaborative tasks found for the parent task"})
 				return
 			}
+			log.Printf("len collaborative tasks for this parent id: %+v", collaborativeTasks)
 			// Prepare the response struct with the retrieved collaborative tasks information, including user details and task editors
 			type taskResponse struct {
 				ID          uuid.UUID   `json:"id"`
@@ -372,7 +373,7 @@ func GetCollaborativeTasksHandler(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 		// Retrieve collaborative tasks that are associated with the specified parent ID from the database
-		collaborativeTasks, err := cfg.DB.GetCollaborativeTasks(c)
+		collaborativeTasks, err := cfg.DB.GetParentTasks(c)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve tasks"})
 			return
@@ -524,6 +525,7 @@ func UpdateTaskHandler(cfg *config.Config) gin.HandlerFunc {
 	}
 }
 
+// DeleteTaskHandler is the handler for deleting an existing task from the system
 func DeleteTaskHandler(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Extract the task ID from the URL parameters and validate it
@@ -550,46 +552,39 @@ func DeleteTaskHandler(cfg *config.Config) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve task"})
 			return
 		}
-		// Check if the user making the request is the owner of the task or has access to it (either as an editor or as a collaborator) to determine if they are authorized to delete the task
+		// Check if the user making the request is the owner of the task or has access to it to determine if they are authorized to delete the task
 		isAuthorized := dbTask.UserID == userID || dbTask.ID == taskID
-
-		if !isAuthorized {
-			for _, editorID := range dbTask.TaskEditors {
-				if editorID == userID {
-					isAuthorized = true
-					break
-				}
-			}
-		}
-		// If the user is not authorized, respond with a 403 Forbidden error
 		if !isAuthorized {
 			c.JSON(http.StatusForbidden, gin.H{"error": "You do not have access to delete this task"})
 			return
 		}
-
+		// Check if the task is a parent task of a collaborative task by checking if the ParentID is null and the tag is "collaborative". If it is a parent task, then delete all the associated collaborative tasks as well. If it is not a parent task, then just delete the task itself.
 		isAdmin := false
-		if dbTask.ParentID.UUID != uuid.Nil && dbTask.Tag == "collaborative" {
+		if dbTask.ParentID.UUID == uuid.Nil && dbTask.Tag == "collaborative" {
 			isAdmin = true
 		}
-
+		// If the task is a parent task of a collaborative task, retrieve all the associated collaborative tasks from the database and then delete them along with the parent task.
 		if isAdmin {
 			collaborativeTasks, err := cfg.DB.GetCollaborativeTasksByParentID(c, uuid.NullUUID{UUID: taskID, Valid: true})
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve collaborative tasks"})
 				return
 			}
+			// Delete the parent task and all its associated collaborative tasks from the database using the provided configuration and task ID, and then return a success message in the response
 			for _, task := range collaborativeTasks {
+				log.Printf("deleting task with id: %s", task.ID)
 				err = cfg.DB.DeleteTask(c, task.ID)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete task"})
 					return
 				}
 			}
+			// respond with a success message in the response with a 200 OK status after deleting the parent task and all its associated collaborative tasks
 			c.JSON(http.StatusOK, gin.H{"message": "Parent task and its collaborative tasks deleted successfully"})
 			return
-
+			// If the task is not a parent task of a collaborative task, then just delete the task itself from the database using the provided configuration and task ID, and then return a success message in the response
 		} else {
-			// Delete the task from the database using the provided configuration and task ID, and then return a success message in the response
+			// Delete the task from the database using the provided configuration and task ID
 			err = cfg.DB.DeleteTask(c, taskID)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete task"})
