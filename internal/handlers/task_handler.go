@@ -444,15 +444,9 @@ func UpdateTaskHandler(cfg *config.Config) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve task"})
 			return
 		}
-		// Retrieve the task admin information from the database to check if the user has access to update the task
-		admon, err := cfg.DB.GetTaskByID(c, taskID)
-		if err != nil {
-			log.Printf("Error retrieving task admin: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve task admin"})
-			return
-		}
+
 		// Check if the user making the request is the owner of the task or has access to it (either as an editor or as a collaborator) to determine if they are authorized to update the task
-		isAuthorized := dbTask.UserID == userID || admon.ID == taskID
+		isAuthorized := dbTask.UserID == userID || dbTask.ID == taskID
 
 		if !isAuthorized {
 			for _, editorID := range dbTask.TaskEditors {
