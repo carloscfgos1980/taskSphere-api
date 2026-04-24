@@ -14,6 +14,12 @@ github.com/jackc/pgx/v5
 get uuid package
 go get github.com/google/uuid
 
+package to create jwt
+go get github.com/golang-jwt/jwt/v5
+
+package to encrypt password
+go get github.com/alexedwards/argon2id
+
 command to run the app. I got an issue while running just main.go
 go run ./cmd/*.go
 
@@ -49,3 +55,38 @@ sqlc generate
 ```
 
 Here I had an issue coz in the sql.yaml file I didn't include the driver (pgx/v5)
+
+## 2. Create user
+
+1. Create package that holds utils functions (IsStrongPassword and IsValidEmail)
+2. Create package to handle to read the request and write the response in json /json/json.go
+3. Define type (structs) needed to register a new user /internal/users/types.go
+
+4. Service set up /internal/users/service.go
+4.1 Service defines the interface for the users service
+4.2 svc defines the struct for the users service
+
+5. CreateUser creates a new user in the database /internal/users/service.go
+5.1 start a transaction
+5.2 create a new Queries instance with the transaction
+5.3 create the user
+5.4 commit the transaction
+5.5 return the created user
+
+6. Handler set up /internal/users/handler.go
+6.1 handler is the HTTP handler for users endpoints
+6.2 NewHandler creates a new handler for users endpoints
+
+7. CreateUser handles the HTTP request for creating a new user /internal/users/handler.go
+7.1 Parse the JSON request body into a UserRequest struct
+7.2 Check if any field is empty
+7.3 Validate email format
+7.4 Validate the password strength
+7.5 Hash the password before storing it in the database
+7.6 Update the user request with the hashed password
+7.7 Call the service to create the user
+7.8 Create a response struct to send back to the client, excluding the password
+7.9 Write the response as JSON with a 201 Created status code
+
+8. users endpoints. Create the user service and handler /cmd/api.go
+9. set up the users routes /cmd/api.go

@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/carloscfgos1980/taskSphere-api/internal/database"
+	"github.com/carloscfgos1980/taskSphere-api/internal/users"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5"
@@ -46,7 +48,14 @@ func (app *application) mount() http.Handler {
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("all good for now"))
 	})
-	// return the router
+	// users endpoints
+	// create the user service and handler
+	userService := users.NewService(database.New(app.db), app.db)
+	userHandler := users.NewHandler(userService)
+	// set up the users routes
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/register", userHandler.CreateUser)
+	})
 	return r
 }
 
