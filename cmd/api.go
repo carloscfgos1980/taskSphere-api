@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/carloscfgos1980/taskSphere-api/internal/database"
+	"github.com/carloscfgos1980/taskSphere-api/internal/refresh"
 	"github.com/carloscfgos1980/taskSphere-api/internal/users"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -58,6 +59,11 @@ func (app *application) mount() http.Handler {
 		r.Post("/register", userHandler.CreateUser)
 		r.Post("/login", userHandler.LoginUser)
 	})
+
+	// refresh token endpoint
+	refreshService := refresh.NewService(database.New(app.db), app.db)
+	refreshHandler := refresh.NewHandler(refreshService, app.config.JWTSecret)
+	r.Post("/refresh", refreshHandler.RefreshToken)
 	return r
 }
 

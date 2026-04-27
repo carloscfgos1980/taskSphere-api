@@ -118,3 +118,25 @@ Here I had an issue coz in the sql.yaml file I didn't include the driver (pgx/v5
 
 Note: This was a bit challenging coz I am used to access config directly and in this case it has to be done thru the handler
 6. set up the users routes (login)
+
+## 4. Refresh token
+
+1. set up for service /internal/refresh/service.go
+1.1 Service defines the interface for the users service
+1.2 svc defines the struct for the users service
+1.3 NewService creates a new service for the users package
+
+2. GetUserFromRefreshToken retrieves the user associated with the given refresh token from the database /internal/refresh/service.go
+
+3. set up for handler
+3.1 handler is the HTTP handler for users endpoints
+3.2 NewHandler creates a new handler for users endpoints
+
+4. RefreshToken handles the HTTP request for refreshing a user's access token
+4.1 Get the refresh token from the Authorization header
+4.2 Get the user associated with the refresh token from the database
+4.3 Generate a new JWT token for the user to authenticate future requests
+4.4 Create a response struct to send back to the client with the new access token and refresh token
+4.5 Write the response as JSON with a 200 OK status code
+
+5. refresh token endpoint /cmd/api.go
