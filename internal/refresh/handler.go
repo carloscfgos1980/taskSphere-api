@@ -33,7 +33,7 @@ func (h *handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	// Get the user associated with the refresh token from the database
 	user, err := h.service.GetUserFromRefreshToken(r.Context(), refreshToken)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
 		return
 	}
 	// Generate a new JWT token for the user to authenticate future requests
@@ -56,6 +56,27 @@ func (h *handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 	// Write the response as JSON with a 200 OK status code
 	if err := json.WriteJSON(w, http.StatusOK, resp); err != nil {
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// RevokeRefreshToken handles the HTTP request for revoking a user's refresh token
+func (h *handler) RevokeRefreshToken(w http.ResponseWriter, r *http.Request) {
+	// Get the refresh token from the Authorization header
+	refreshToken, err := utils.GetBearerToken(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	// Revoke the refresh token in the database
+	err = h.service.RevokeRefreshToken(r.Context(), refreshToken)
+	if err != nil {
+		http.Error(w, "Failed to revoke refresh token", http.StatusInternalServerError)
+		return
+	}
+	// Write a success response with a 200 OK status code
+	if err := json.WriteJSON(w, http.StatusOK, map[string]string{"message": "Refresh token revoked successfully"}); err != nil {
 		http.Error(w, "Failed to write response", http.StatusInternalServerError)
 		return
 	}

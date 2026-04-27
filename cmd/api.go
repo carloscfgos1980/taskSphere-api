@@ -64,6 +64,7 @@ func (app *application) mount() http.Handler {
 	refreshService := refresh.NewService(database.New(app.db), app.db)
 	refreshHandler := refresh.NewHandler(refreshService, app.config.JWTSecret)
 	r.Post("/refresh", refreshHandler.RefreshToken)
+	r.Post("/revoke", refreshHandler.RevokeRefreshToken)
 	return r
 }
 

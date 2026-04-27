@@ -126,7 +126,9 @@ Note: This was a bit challenging coz I am used to access config directly and in 
 1.2 svc defines the struct for the users service
 1.3 NewService creates a new service for the users package
 
-2. GetUserFromRefreshToken retrieves the user associated with the given refresh token from the database /internal/refresh/service.go
+2. Defive service for refresh handler
+2.1 GetUserFromRefreshToken retrieves the user associated with the given refresh token from the database /internal/refresh/service.go
+2.2 add GetUserFromRefreshToke to Service interface
 
 3. set up for handler
 3.1 handler is the HTTP handler for users endpoints
@@ -140,3 +142,16 @@ Note: This was a bit challenging coz I am used to access config directly and in 
 4.5 Write the response as JSON with a 200 OK status code
 
 5. refresh token endpoint /cmd/api.go
+
+## 5. Revoke refresh token
+
+1. Service for revoke the refresh token /internal/refresh/service.go
+1.1 RevokeRefreshToken method revokes a refresh token in the database, preventing it from being used to generate new access tokens
+1.2 Add RevokeRefreshToken method to Service interface
+
+2. RevokeRefreshToken handles the HTTP request for revoking a user's refresh token /internal/refresh/handler.go
+2.1 Get the refresh token from the Authorization header
+2.2 Revoke the refresh token in the database
+2.3 Write a success response with a 200 OK status code
+
+3. refresh token endpoint /cmd/api.go
