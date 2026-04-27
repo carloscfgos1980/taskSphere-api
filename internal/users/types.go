@@ -28,3 +28,10 @@ type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+
+// LoginResponse is the response body when logging in a user.
+type LoginResponse struct {
+	User
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+}

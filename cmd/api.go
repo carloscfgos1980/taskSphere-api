@@ -20,8 +20,9 @@ type application struct {
 
 // config holds the configuration for the application
 type config struct {
-	addr string
-	db   dbConfig
+	addr      string
+	db        dbConfig
+	JWTSecret string
 }
 
 // dbConfig holds the database configuration for the application
@@ -51,10 +52,11 @@ func (app *application) mount() http.Handler {
 	// users endpoints
 	// create the user service and handler
 	userService := users.NewService(database.New(app.db), app.db)
-	userHandler := users.NewHandler(userService)
+	userHandler := users.NewHandler(userService, app.config.JWTSecret)
 	// set up the users routes
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", userHandler.CreateUser)
+		r.Post("/login", userHandler.LoginUser)
 	})
 	return r
 }

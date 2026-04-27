@@ -90,3 +90,31 @@ Here I had an issue coz in the sql.yaml file I didn't include the driver (pgx/v5
 
 8. users endpoints. Create the user service and handler /cmd/api.go
 9. set up the users routes /cmd/api.go
+
+## 3. Login
+
+1. Config JWT Secret /cmd/main.go
+1.1 Get the JWT secret from environment variables
+1.2 Add JWT to cfg (config)
+
+2. Add services /internal/users/service.go
+2.1 GetUserByEmail gets a user from the database by email
+2.2 CreateRefreshToken creates a new refresh token for a user in the database
+
+3. Add JWT field to the handler returned from NewHandler /internal/users/handler
+
+4. LoginUser handles the HTTP request for logging in a user
+4.1 Parse the JSON request body into a UserRequest struct
+4.2 Check if email and password are provided
+4.3 Get the user by email from the database
+4.4 Check if the provided password matches the stored hashed password
+4.5 Generate a JWT token for the authenticated user
+4.6 Generate a refresh token and store it in the database
+4.7 Create a response struct to send back to the client with the access token
+4.8 Write the response as JSON with a 200 OK status code
+
+5. Add JWT as second parameter to the function NewHandler:
+ userHandler := users.NewHandler(userService, app.config.JWTSecret)
+
+Note: This was a bit challenging coz I am used to access config directly and in this case it has to be done thru the handler
+6. set up the users routes (login)

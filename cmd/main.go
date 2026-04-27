@@ -19,6 +19,11 @@ func main() {
 	if port == "" {
 		log.Fatal("PORT must be set")
 	}
+	// Get the JWT secret from environment variables
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET must be set")
+	}
 	// create a context
 	ctx := context.Background()
 	// load env variables
@@ -27,6 +32,7 @@ func main() {
 		db: dbConfig{
 			dsn: env.GetEnv("DB_URL", "postgres://carlosinfante:@localhost:5432/tasksphere?sslmode=disable"),
 		},
+		JWTSecret: jwtSecret,
 	}
 	// initialize logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
