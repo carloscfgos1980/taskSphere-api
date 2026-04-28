@@ -13,6 +13,7 @@ import (
 type Service interface {
 	GetUserByID(ctx context.Context, id string) (database.User, error)
 	CreateTask(ctx context.Context, task Task) (database.Task, error)
+	GetTaskByID(ctx context.Context, id string) (database.Task, error)
 }
 
 // svc defines the struct for the users service
@@ -103,4 +104,30 @@ func (s *svc) CreateTask(ctx context.Context, task Task) (database.Task, error) 
 		return database.Task{}, err
 	}
 	return createdTask, nil
+}
+
+// GetTaskByID retrieves a task by its ID from the database
+func (s *svc) GetTaskByID(ctx context.Context, id string) (database.Task, error) {
+	// start a transaction
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return database.Task{}, err
+	}
+	defer tx.Rollback(ctx)
+	// create a new Queries instance with the transaction
+	qtx := s.repo.WithTx(tx)
+	taskID := pgtype.UUID{}
+	err = taskID.Scan(id)
+	if err != nil {
+		return database.Task{}, err
+	}
+	task, err := qtx.GetTaskByID(ctx, taskID)
+	if err != nil {
+		return database.Task{}, err
+	}
+	// commit the transaction
+	if err := tx.Commit(ctx); err != nil {
+		return database.Task{}, err
+	}
+	return task, nil
 }

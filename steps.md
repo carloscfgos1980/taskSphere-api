@@ -209,3 +209,24 @@ Note: This was a bit challenging coz I am used to access config directly and in 
 7.14 Write the response as JSON
 
 8. create the task service and handler cmd/api.go
+
+## 8. Get a task
+
+1. GetTaskByID method of svc struct retrieves a task by its ID from the database /internal/tasks/service.go
+2. Add GetTaskByID to service interface
+
+3. GetTaskByID handles the retrieval of a task by its ID
+3.1 Get the task ID from the URL parameters
+3.2 Call the service to get the task from the database
+3.3 Get the user ID from the request context (set by the authentication middleware)
+3.4 Check if the user ID is present in the context
+3.5 Assert the user ID value to a UUID type
+3.6 Convert the user ID to a string for database queries
+3.7 Check if the user has access to the task (is the owner or an editor)
+3.8 Check if the user is an editor of the task
+3.9 If the user is not the owner and not an editor, return a forbidden error
+3.10 Convert []pgtype.UUID to []uuid.UUID
+3.11 Create a response struct to send back to the client
+3.12 Write the response as JSON
+
+4. create the task service and handler /cmd/api.go

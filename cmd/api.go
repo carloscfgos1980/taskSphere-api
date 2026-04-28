@@ -74,10 +74,11 @@ func (app *application) mount() http.Handler {
 		r.Use(func(next http.Handler) http.Handler {
 			return authmiddleware.AuthMiddleware(next, app.config.JWTSecret)
 		})
-		// add protected routes here
+		// create the task service and handler
 		taskService := tasks.NewService(database.New(app.db), app.db)
 		taskHandler := tasks.NewHandler(taskService, app.config.JWTSecret)
 		r.Post("/tasks", taskHandler.CreateTask)
+		r.Get("/tasks/{taskID}", taskHandler.GetTaskByID)
 
 	})
 	return r
