@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/carloscfgos1980/taskSphere-api/internal/database"
+	authmiddleware "github.com/carloscfgos1980/taskSphere-api/internal/middleware"
 	"github.com/carloscfgos1980/taskSphere-api/internal/refresh"
+	"github.com/carloscfgos1980/taskSphere-api/internal/tasks"
 	"github.com/carloscfgos1980/taskSphere-api/internal/users"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -65,6 +67,19 @@ func (app *application) mount() http.Handler {
 	refreshHandler := refresh.NewHandler(refreshService, app.config.JWTSecret)
 	r.Post("/refresh", refreshHandler.RefreshToken)
 	r.Post("/revoke", refreshHandler.RevokeRefreshToken)
+
+	// protected routes
+	r.Route("/api", func(r chi.Router) {
+		// Add authentication middleware here if available
+		r.Use(func(next http.Handler) http.Handler {
+			return authmiddleware.AuthMiddleware(next, app.config.JWTSecret)
+		})
+		// add protected routes here
+		taskService := tasks.NewService(database.New(app.db), app.db)
+		taskHandler := tasks.NewHandler(taskService, app.config.JWTSecret)
+		r.Post("/tasks", taskHandler.CreateTask)
+
+	})
 	return r
 }
 
