@@ -29,6 +29,7 @@ func NewService(repo *database.Queries, db *pgx.Conn) Service {
 	}
 }
 
+// GetUserByID retrieves a user by their ID from the database
 func (s *svc) GetUserByID(ctx context.Context, id string) (database.User, error) {
 	// start a transaction
 	tx, err := s.db.Begin(ctx)
@@ -54,6 +55,7 @@ func (s *svc) GetUserByID(ctx context.Context, id string) (database.User, error)
 	return user, nil
 }
 
+// CreateTask creates a new task in the database associated with the given user ID
 func (s *svc) CreateTask(ctx context.Context, task Task) (database.Task, error) {
 	// start a transaction
 	tx, err := s.db.Begin(ctx)

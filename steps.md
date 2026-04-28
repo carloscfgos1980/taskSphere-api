@@ -155,3 +155,57 @@ Note: This was a bit challenging coz I am used to access config directly and in 
 2.3 Write a success response with a 200 OK status code
 
 3. refresh token endpoint /cmd/api.go
+
+## 6. Middleware
+
+1. HTTP middleware setting a value on the request context /internal/authmiddleware/auth_middleware.go
+1.1 Return a new http.HandlerFunc that wraps the original handler and adds the authentication logic
+1.2 Extract the token from the Authorization header
+1.3 Validate the token and extract the user ID
+1.4 Create a new context with the user ID value
+1.5 Call the next handler with the new context
+
+2. protected routes
+
+```go
+ r.Route("/api", func(r chi.Router) {
+  // Add authentication middleware here if available
+  r.Use(func(next http.Handler) http.Handler {
+   return authmiddleware.AuthMiddleware(next, app.config.JWTSecret)
+  })
+ })
+```
+
+## 7. Create a task
+
+1. Task struct represents a task in the system /internal/tasks/types.go
+2. Set up srvice /internal/tasks/service.go
+2.1 Service defines the interface for the users service
+2.2 svc defines the struct for the users service
+2.3 NewService creates a new service for the users package
+
+3. GetUserByID method of svc retrieves a user by their ID from the database
+4. CreateTask method of svc creates a new task in the database associated with the given user ID
+5. Add "GetUserByID" and "CreateTask" to service interface
+
+6. Set up for the handler /internal/tasks/handler.go
+6.1 handler is the HTTP handler for users endpoints
+6.2 NewHandler creates a new handler for users endpoints
+
+7. CreateTask handles the creation of a new task for a user
+7.1 Define the expected parameters for creating a new task and the response structure
+7.2 Get the user ID from the request context (set by the authentication middleware)
+7.3 Check if the user ID is present in the context
+7.4 Assert the user ID value to a UUID type
+7.5 Convert the user ID to a string for database queries
+7.6 Check if the user exists in the database
+7.7 Parse the JSON request body into a TaskRequest struct
+7.8 Check if any field is empty
+7.9 Validate the priority, state, and tag values
+7.10 Create a Task struct with the parsed data and the user ID
+7.11 Call the service to create the task in the database
+7.12 Convert []pgtype.UUID to []uuid.UUID
+7.13 Create a response struct to send back to the client
+7.14 Write the response as JSON
+
+8. create the task service and handler cmd/api.go

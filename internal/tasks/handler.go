@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/carloscfgos1980/taskSphere-api/internal/database"
 	"github.com/carloscfgos1980/taskSphere-api/internal/json"
 	"github.com/carloscfgos1980/taskSphere-api/internal/utils"
 )
@@ -26,6 +25,7 @@ func NewHandler(service Service, jwtSecret string) *handler {
 	}
 }
 
+// CreateTask handles the creation of a new task for a user
 func (h *handler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	// Define the expected parameters for creating a new task and the response structure
 	type parameters struct {
@@ -38,15 +38,22 @@ func (h *handler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		ParentID    uuid.UUID   `json:"parent_id"`
 		TaskEditors []uuid.UUID `json:"task_editors"`
 	}
-
+	// Get the user ID from the request context (set by the authentication middleware)
 	userIDValue := r.Context().Value("userID")
+	// Check if the user ID is present in the context
+	if userIDValue == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Assert the user ID value to a UUID type
 	userUUID, ok := userIDValue.(uuid.UUID)
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+	// Convert the user ID to a string for database queries
 	userID := userUUID.String()
-
+	// Check if the user exists in the database
 	_, err := h.service.GetUserByID(r.Context(), userID)
 	if err != nil {
 		log.Println(err)
@@ -65,6 +72,7 @@ func (h *handler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Title, description, and end date are required", http.StatusBadRequest)
 		return
 	}
+	// Validate the priority, state, and tag values
 	priority, err := utils.CheckPriority(taskReq.Priority)
 	if err != nil {
 		http.Error(w, "Invalid priority", http.StatusBadRequest)
@@ -80,6 +88,7 @@ func (h *handler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid tag", http.StatusBadRequest)
 		return
 	}
+	// Create a Task struct with the parsed data and the user ID
 	task := Task{
 		Title:       taskReq.Title,
 		Description: taskReq.Description,
@@ -91,19 +100,36 @@ func (h *handler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		ParentID:    taskReq.ParentID,
 		TaskEditors: taskReq.TaskEditors,
 	}
+	// Call the service to create the task in the database
 	createdTask, err := h.service.CreateTask(r.Context(), task)
 	if err != nil {
 		log.Printf("create task error: %v", err)
 		http.Error(w, "Failed to create task: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
-	type response struct {
-		Task database.Task `json:"task"`
+	// Convert []pgtype.UUID to []uuid.UUID
+	var taskEditors []uuid.UUID
+	if len(createdTask.TaskEditors) > 0 {
+		taskEditors = make([]uuid.UUID, len(createdTask.TaskEditors))
+		for i, editor := range createdTask.TaskEditors {
+			taskEditors[i] = uuid.UUID(editor.Bytes)
+		}
 	}
-	resp := response{
-		Task: createdTask,
+	// Create a response struct to send back to the client
+	response := Task{
+		ID:          uuid.UUID(createdTask.ID.Bytes),
+		Title:       createdTask.Title,
+		Description: createdTask.Description,
+		EndDate:     createdTask.EndDate.Time,
+		UserID:      uuid.UUID(createdTask.UserID.Bytes),
+		Priority:    createdTask.Priority,
+		State:       createdTask.State,
+		Tag:         createdTask.Tag,
+		ParentID:    uuid.UUID(createdTask.ParentID.Bytes),
+		TaskEditors: taskEditors,
 	}
-	if err := json.WriteJSON(w, http.StatusOK, resp); err != nil {
+	// Write the response as JSON
+	if err := json.WriteJSON(w, http.StatusOK, response); err != nil {
 		http.Error(w, "Failed to write response", http.StatusInternalServerError)
 		return
 	}

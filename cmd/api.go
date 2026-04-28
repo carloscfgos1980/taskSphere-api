@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/carloscfgos1980/taskSphere-api/internal/authmiddleware"
 	"github.com/carloscfgos1980/taskSphere-api/internal/database"
-	authmiddleware "github.com/carloscfgos1980/taskSphere-api/internal/middleware"
 	"github.com/carloscfgos1980/taskSphere-api/internal/refresh"
 	"github.com/carloscfgos1980/taskSphere-api/internal/tasks"
 	"github.com/carloscfgos1980/taskSphere-api/internal/users"
