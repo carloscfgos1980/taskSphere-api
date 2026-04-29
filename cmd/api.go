@@ -77,9 +77,11 @@ func (app *application) mount() http.Handler {
 		// create the task service and handler
 		taskService := tasks.NewService(database.New(app.db), app.db)
 		taskHandler := tasks.NewHandler(taskService, app.config.JWTSecret)
+		// set up the tasks routes
 		r.Post("/tasks", taskHandler.CreateTask)
 		r.Get("/tasks/{taskID}", taskHandler.GetTaskByID)
 		r.Get("/tasks", taskHandler.GetTasks)
+		r.Get("/tasks/collaborative", taskHandler.GetParentsCollaborativeTasks)
 
 	})
 	return r

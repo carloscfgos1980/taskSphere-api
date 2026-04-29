@@ -297,22 +297,7 @@ func (h *handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// Prepare the response struct with the retrieved collaborative tasks information, including user details and task editors
-		type taskResponse struct {
-			ID          uuid.UUID   `json:"id"`
-			CreatedAt   time.Time   `json:"created_at"`
-			UpdatedAt   time.Time   `json:"updated_at"`
-			UserID      uuid.UUID   `json:"user_id"`
-			Username    string      `json:"username"`
-			Email       string      `json:"email"`
-			Title       string      `json:"title"`
-			EndDate     time.Time   `json:"end_date"`
-			Description string      `json:"description"`
-			Priority    string      `json:"priority"`
-			Tag         string      `json:"tag"`
-			State       string      `json:"state"`
-			ParentID    uuid.UUID   `json:"parent_id,omitempty"`
-			TaskEditors []uuid.UUID `json:"task_editors"`
-		}
+
 		// Check if the user making the request is the owner of any of the collaborative tasks or has access to them
 		hasAccess := false
 		var response []taskResponse
@@ -347,7 +332,6 @@ func (h *handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 				Priority:    task.Priority,
 				Tag:         task.Tag,
 				State:       task.State,
-				ParentID:    uuid.UUID(task.ParentID.Bytes),
 				TaskEditors: taskEditors,
 			})
 		}
@@ -425,6 +409,73 @@ func (h *handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 	// If the tag value is invalid, return a bad request error
 	default:
 		http.Error(w, "Invalid tag parameter", http.StatusBadRequest)
+		return
+	}
+}
+
+// GetParentsCollaborativeTasks handles the retrieval of parent tasks that are collaborative and associated with the user making the request from the database
+func (h *handler) GetParentsCollaborativeTasks(w http.ResponseWriter, r *http.Request) {
+	// Extract the user ID from the context (set by the authentication middleware)
+	userIDValue := r.Context().Value("userID")
+	if userIDValue == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Assert the user ID value to a UUID type
+	userUUID, ok := userIDValue.(uuid.UUID)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Convert the user ID to a string for database queries
+	userID := userUUID.String()
+	// Check if the user exists in the database
+	_, err := h.service.GetUserByID(r.Context(), userID)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+	// Retrieve parent tasks that are collaborative
+	collaborativeTasks, err := h.service.GetParentTasks(r.Context())
+	if err != nil {
+		log.Printf("get collaborative tasks error: %v", err)
+		http.Error(w, "Failed to get collaborative tasks: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if len(collaborativeTasks) == 0 {
+		http.Error(w, "No collaborative tasks found for the user", http.StatusNotFound)
+		return
+	}
+	// Create a slice of taskResponse to hold the response data for parent collaborative tasks
+	response := make([]taskResponse, len(collaborativeTasks))
+	for i, task := range collaborativeTasks {
+		var taskEditors []uuid.UUID
+		if len(task.TaskEditors) > 0 {
+			taskEditors = make([]uuid.UUID, len(task.TaskEditors))
+			for j, editor := range task.TaskEditors {
+				taskEditors[j] = uuid.UUID(editor.Bytes)
+			}
+		}
+		response[i] = taskResponse{
+			ID:          uuid.UUID(task.ID.Bytes),
+			CreatedAt:   task.CreatedAt.Time,
+			UpdatedAt:   task.UpdatedAt.Time,
+			UserID:      uuid.UUID(task.UserID.Bytes),
+			Username:    task.Username,
+			Email:       task.Email,
+			Title:       task.Title,
+			EndDate:     task.EndDate.Time,
+			Description: task.Description,
+			Priority:    task.Priority,
+			Tag:         task.Tag,
+			State:       task.State,
+			TaskEditors: taskEditors,
+		}
+	}
+	// Write the response as JSON
+	if err := json.WriteJSON(w, http.StatusOK, response); err != nil {
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
 		return
 	}
 }

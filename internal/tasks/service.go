@@ -17,6 +17,7 @@ type Service interface {
 	GetTasksByUserID(ctx context.Context, userID string) ([]database.Task, error)
 	GetCollaborativeTasksByParentID(ctx context.Context, parentID string) ([]database.GetCollaborativeTasksByParentIDRow, error)
 	GetPublicTasks(ctx context.Context) ([]database.GetPublicTasksRow, error)
+	GetParentTasks(ctx context.Context) ([]database.GetParentTasksRow, error)
 }
 
 // svc defines the struct for the users service
@@ -198,6 +199,27 @@ func (s *svc) GetPublicTasks(ctx context.Context) ([]database.GetPublicTasksRow,
 	// create a new Queries instance with the transaction
 	qtx := s.repo.WithTx(tx)
 	tasks, err := qtx.GetPublicTasks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// commit the transaction
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+// GetParentTasks retrieves all parent tasks from the database
+func (s *svc) GetParentTasks(ctx context.Context) ([]database.GetParentTasksRow, error) {
+	// start a transaction
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	// create a new Queries instance with the transaction
+	qtx := s.repo.WithTx(tx)
+	tasks, err := qtx.GetParentTasks(ctx)
 	if err != nil {
 		return nil, err
 	}

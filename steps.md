@@ -274,3 +274,23 @@ Note: This was a bit challenging coz I am used to access config directly and in 
 1. create the task service and handler /cmd/api.go
 
 ## 10. Get collaborative tasks parents
+
+1. Move the struct taskResponse that represents the response format for a task, including the username and email of the user who created the task to types to avoid repeating code /internal/tasks/types.go
+2. GetParentTasks  method of svc retrieves all parent tasks from the database /internal/tasks/service.go
+3. Add GetParentTasks method to service interface
+
+4. GetParentsCollaborativeTasks handles the retrieval of parent tasks that are collaborative and associated with the user making the request from the database /internal/tasks/handler.go
+4.1 Extract the user ID from the context (set by the authentication middleware)
+4.2 Assert the user ID value to a UUID type
+4.3 Convert the user ID to a string for database queries
+4.4 Check if the user exists in the database
+4.5 Retrieve parent tasks that are collaborative
+4.6 Write the response as JSON
+
+5. set up the tasks routes /cmd/api.go
+
+```go
+  r.Get("/tasks/collaborative", taskHandler.GetParentsCollaborativeTasks)
+```
+
+## 11. Update a task
