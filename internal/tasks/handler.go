@@ -536,6 +536,10 @@ func (h *handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	}
 	// Check if the user making the request is the owner of the task or has access to it (either as an editor or as a collaborator) to determine if they are authorized to update the task
 	isAuthorized := dbTask.UserID.String() == userID
+	if !isAuthorized && dbTask.Tag == "collaborative" && !dbTask.ParentID.Valid {
+		http.Error(w, "You do not have access to update this task", http.StatusForbidden)
+		return
+	}
 	if !isAuthorized && dbTask.Tag == "collaborative" {
 		adminTask, err := h.service.GetTaskByID(r.Context(), dbTask.ParentID.String())
 		if err != nil {
