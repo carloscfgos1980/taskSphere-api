@@ -14,6 +14,9 @@ type Service interface {
 	GetUserByID(ctx context.Context, id string) (database.User, error)
 	CreateTask(ctx context.Context, task Task) (database.Task, error)
 	GetTaskByID(ctx context.Context, id string) (database.Task, error)
+	GetTasksByUserID(ctx context.Context, userID string) ([]database.Task, error)
+	GetCollaborativeTasksByParentID(ctx context.Context, parentID string) ([]database.GetCollaborativeTasksByParentIDRow, error)
+	GetPublicTasks(ctx context.Context) ([]database.GetPublicTasksRow, error)
 }
 
 // svc defines the struct for the users service
@@ -130,4 +133,77 @@ func (s *svc) GetTaskByID(ctx context.Context, id string) (database.Task, error)
 		return database.Task{}, err
 	}
 	return task, nil
+}
+
+// GetTasksByUserID retrieves all tasks associated with a given user ID from the database
+func (s *svc) GetTasksByUserID(ctx context.Context, userID string) ([]database.Task, error) {
+	// start a transaction
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	// create a new Queries instance with the transaction
+	qtx := s.repo.WithTx(tx)
+	userIDUUID := pgtype.UUID{}
+	err = userIDUUID.Scan(userID)
+	if err != nil {
+		return nil, err
+	}
+	tasks, err := qtx.GetTasksByUserID(ctx, userIDUUID)
+	if err != nil {
+		return nil, err
+	}
+	// commit the transaction
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+// GetCollaborativeTasksByParentID retrieves all collaborative tasks associated with a given parent task ID or task ID if that user is the owner of the parent ID from the database
+func (s *svc) GetCollaborativeTasksByParentID(ctx context.Context, parentID string) ([]database.GetCollaborativeTasksByParentIDRow, error) {
+	// start a transaction
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	// create a new Queries instance with the transaction
+	qtx := s.repo.WithTx(tx)
+	parentIDUUID := pgtype.UUID{}
+	err = parentIDUUID.Scan(parentID)
+	if err != nil {
+		return nil, err
+	}
+	tasks, err := qtx.GetCollaborativeTasksByParentID(ctx, parentIDUUID)
+	if err != nil {
+		return nil, err
+	}
+	// commit the transaction
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return tasks, nil
+}
+
+// GetPublicTasks retrieves all public tasks from the database
+func (s *svc) GetPublicTasks(ctx context.Context) ([]database.GetPublicTasksRow, error) {
+	// start a transaction
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	// create a new Queries instance with the transaction
+	qtx := s.repo.WithTx(tx)
+	tasks, err := qtx.GetPublicTasks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// commit the transaction
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return tasks, nil
 }

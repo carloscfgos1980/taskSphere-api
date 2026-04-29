@@ -230,3 +230,47 @@ Note: This was a bit challenging coz I am used to access config directly and in 
 3.12 Write the response as JSON
 
 4. create the task service and handler /cmd/api.go
+
+## 9. Get taks
+
+1. GetTasksByUserID method of svc retrieves all tasks associated with a given user ID from the database internal/tasks/service.go
+2. GetCollaborativeTasksByParentID retrieves all collaborative tasks associated with a given parent task ID or task ID if that user is the owner of the parent ID from the database
+3. GetPublicTasks retrieves all public tasks from the database
+4. Add GetTasksByUserID, GetCollaborativeTasksByParentID and GetPublicTasks to service interface
+
+5. GetTasks handles the retrieval of tasks based on the tag query parameter and user access level /internal/tasks/handler.go
+5.1 Extract the tag query parameter and validate it
+5.2 Extract the user ID from the context (set by the authentication middleware)
+5.3 Assert the user ID value to a UUID type
+5.4 Convert the user ID to a string for database queries
+
+5.5 switch tag. Handle the retrieval of tasks based on the tag value and user access level
+5.5.1 If the tag is "private", retrieve tasks that are private to the user from the database
+5.5.1.1 Retrieve tasks that are private to the user from the database
+5.5.1.2 If no private tasks are found for the user, return a 404 Not Found response
+5.5.1.3 Prepare the response struct with the retrieved tasks information
+5.5.1.4 Convert []pgtype.UUID to []uuid.UUID
+5.5.1.5 Create a response struct for each task with the retrieved information, including user details and task editors
+5.5.1.6 Write the retrieved tasks as JSON response
+
+5.5.2 If the tag is "collaborative", retrieve tasks that are collaborative and associated with the specified parent ID from the database
+5.5.2.1 Extract the parent_id query parameter and validate it
+5.5.2.2 Retrieve collaborative tasks that are associated with the specified parent ID from the database
+5.5.2.3 If no collaborative tasks are found for the specified parent ID, return a 404 Not Found response
+5.5.2.4 Prepare the response struct with the retrieved collaborative tasks information, including user details and task editors
+5.5.2.5 Check if the user making the request is the owner of any of the collaborative tasks or has access to them
+5.5.2.6 If the user does not have access to any of the collaborative tasks, return a forbidden error
+5.5.2.7 Write the retrieved collaborative tasks as JSON response
+
+5.5.3 If the tag is "public", retrieve tasks that are public from the database
+5.5.3.1 Retrieve tasks that are public from the database
+5.5.3.2 If no public tasks are found, return a 404 Not Found response
+5.5.3.3 Prepare the response struct with the retrieved public tasks information, including user details and task editors
+5.5.3.4 Convert the retrieved public tasks to the response struct format, including user details and task editors
+5.5.3.5 Write the retrieved public tasks as JSON response
+
+5.5.4 If the tag value is invalid, return a bad request error
+
+1. create the task service and handler /cmd/api.go
+
+## 10. Get collaborative tasks parents

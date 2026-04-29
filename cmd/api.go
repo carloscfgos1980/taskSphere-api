@@ -79,6 +79,7 @@ func (app *application) mount() http.Handler {
 		taskHandler := tasks.NewHandler(taskService, app.config.JWTSecret)
 		r.Post("/tasks", taskHandler.CreateTask)
 		r.Get("/tasks/{taskID}", taskHandler.GetTaskByID)
+		r.Get("/tasks", taskHandler.GetTasks)
 
 	})
 	return r
