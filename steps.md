@@ -294,3 +294,32 @@ Note: This was a bit challenging coz I am used to access config directly and in 
 ```
 
 ## 11. Update a task
+
+1. UpdateTask method of svc updates a task in the database /internal/tasks/service.go
+2. Add UpdateTask method to service interface
+
+3. UpdateTask handles the updating of a task by its ID, allowing only the owner or editors of the task to perform the update /internal/tasks/handler.go
+3.1 Define a struct to hold the parameters for updating the task
+3.2 Get the task ID from the URL parameters
+3.3 Validate the task ID
+3.4 Get the user ID from the request context (set by the authentication middleware)
+3.5 Check if the user ID is present in the context
+3.6 Assert the user ID value to a UUID type
+3.7 Convert the user ID to a string for database queries
+3.8 Get the task from the database to check if it exists and to verify the user's access level (owner or editor) for authorization to update the task
+3.9 Check if the user making the request is the owner of the task or has access to it (either as an editor or as a collaborator) to determine if they are authorized to update the task
+3.10 Parse the JSON request body into the parameters struct to get the fields that need to be updated for the task
+3.11 Set missing fields to their current values in the database to ensure that only the provided fields are updated while the others remain unchanged
+3.12 Create a Task with the updated fields and the user ID to pass to the service for updating the task in the database, ensuring that only the provided fields are updated while the others remain unchanged
+3.13 Call the service to update the task in the database with the provided fields, ensuring that only the provided fields are updated while the others remain unchanged
+3.14 Create a response struct to send back to the client with the updated task information
+3.15 Write the response as JSON
+
+4. set up the tasks routes /cmd/api.go
+
+```go
+  r.Put("/tasks/{taskID}", taskHandler.UpdateTask)
+```
+
+## 12. Delete a task
+

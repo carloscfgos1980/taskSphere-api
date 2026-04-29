@@ -18,6 +18,7 @@ type Service interface {
 	GetCollaborativeTasksByParentID(ctx context.Context, parentID string) ([]database.GetCollaborativeTasksByParentIDRow, error)
 	GetPublicTasks(ctx context.Context) ([]database.GetPublicTasksRow, error)
 	GetParentTasks(ctx context.Context) ([]database.GetParentTasksRow, error)
+	UpdateTask(ctx context.Context, task Task) (database.Task, error)
 }
 
 // svc defines the struct for the users service
@@ -228,4 +229,52 @@ func (s *svc) GetParentTasks(ctx context.Context) ([]database.GetParentTasksRow,
 		return nil, err
 	}
 	return tasks, nil
+}
+
+// UpdateTask updates a task in the database
+func (s *svc) UpdateTask(ctx context.Context, task Task) (database.Task, error) {
+	// start a transaction
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return database.Task{}, err
+	}
+	defer tx.Rollback(ctx)
+	// create a new Queries instance with the transaction
+	qtx := s.repo.WithTx(tx)
+
+	endDate := pgtype.Timestamp{}
+	err = endDate.Scan(task.EndDate)
+	if err != nil {
+		return database.Task{}, err
+	}
+
+	parentID := pgtype.UUID{Valid: false}
+	if task.ParentID != uuid.Nil {
+		parentID = pgtype.UUID{Bytes: task.ParentID, Valid: true}
+	}
+
+	taskEditors := make([]pgtype.UUID, len(task.TaskEditors))
+	for i, id := range task.TaskEditors {
+		taskEditors[i] = pgtype.UUID{Bytes: id, Valid: true}
+	}
+
+	updatedTask, err := qtx.UpdateTask(ctx, database.UpdateTaskParams{
+		ID:          pgtype.UUID{Bytes: task.ID, Valid: true},
+		Title:       task.Title,
+		Description: task.Description,
+		Priority:    task.Priority,
+		Tag:         task.Tag,
+		State:       task.State,
+		EndDate:     endDate,
+		ParentID:    parentID,
+		TaskEditors: taskEditors,
+	})
+	if err != nil {
+		return database.Task{}, err
+	}
+	// commit the transaction
+	if err := tx.Commit(ctx); err != nil {
+		return database.Task{}, err
+	}
+	return updatedTask, nil
 }

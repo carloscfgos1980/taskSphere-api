@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/carloscfgos1980/taskSphere-api/internal/json"
 	"github.com/carloscfgos1980/taskSphere-api/internal/utils"
@@ -127,7 +128,13 @@ func (h *handler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		State:       createdTask.State,
 		Tag:         createdTask.Tag,
 		ParentID:    uuid.UUID(createdTask.ParentID.Bytes),
-		TaskEditors: taskEditors,
+		TaskEditors: func() []uuid.UUID {
+			editors := make([]uuid.UUID, len(taskEditors))
+			for i, editor := range taskEditors {
+				editors[i] = editor
+			}
+			return editors
+		}(),
 	}
 	// Write the response as JSON
 	if err := json.WriteJSON(w, http.StatusOK, response); err != nil {
@@ -140,6 +147,11 @@ func (h *handler) CreateTask(w http.ResponseWriter, r *http.Request) {
 func (h *handler) GetTaskByID(w http.ResponseWriter, r *http.Request) {
 	// Get the task ID from the URL parameters
 	taskID := chi.URLParam(r, "taskID")
+	// Validate the task ID
+	if _, err := uuid.Parse(taskID); err != nil {
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		return
+	}
 	// Call the service to get the task from the database
 	task, err := h.service.GetTaskByID(r.Context(), taskID)
 	if err != nil {
@@ -472,6 +484,169 @@ func (h *handler) GetParentsCollaborativeTasks(w http.ResponseWriter, r *http.Re
 			State:       task.State,
 			TaskEditors: taskEditors,
 		}
+	}
+	// Write the response as JSON
+	if err := json.WriteJSON(w, http.StatusOK, response); err != nil {
+		http.Error(w, "Failed to write response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// UpdateTask handles the updating of a task by its ID, allowing only the owner or editors of the task to perform the update
+func (h *handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
+	// Define a struct to hold the parameters for updating the task
+	type parameters struct {
+		Title       *string      `json:"title,omitempty"`
+		EndDate     *time.Time   `json:"end_date,omitempty"`
+		Description *string      `json:"description,omitempty"`
+		Priority    *string      `json:"priority,omitempty"`
+		State       *string      `json:"state,omitempty"`
+		Tag         *string      `json:"tag,omitempty"`
+		ParentID    *uuid.UUID   `json:"parent_id,omitempty"`
+		TaskEditors *[]uuid.UUID `json:"task_editors,omitempty"`
+	}
+	// Get the task ID from the URL parameters
+	taskID := chi.URLParam(r, "taskID")
+	// Validate the task ID
+	if _, err := uuid.Parse(taskID); err != nil {
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		return
+	}
+	// Get the user ID from the request context (set by the authentication middleware)
+	userIDValue := r.Context().Value("userID")
+	// Check if the user ID is present in the context
+	if userIDValue == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Assert the user ID value to a UUID type
+	userUUID, ok := userIDValue.(uuid.UUID)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Convert the user ID to a string for database queries
+	userID := userUUID.String()
+	// Get the task from the database to check if it exists and to verify the user's access level (owner or editor) for authorization to update the task
+	dbTask, err := h.service.GetTaskByID(r.Context(), taskID)
+	if err != nil {
+		log.Printf("get task error: %v", err)
+		http.Error(w, "Failed to get task: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Check if the user making the request is the owner of the task or has access to it (either as an editor or as a collaborator) to determine if they are authorized to update the task
+	isAuthorized := dbTask.UserID.String() == userID
+	if !isAuthorized && dbTask.Tag == "collaborative" {
+		adminTask, err := h.service.GetTaskByID(r.Context(), dbTask.ParentID.String())
+		if err != nil {
+			log.Printf("Error retrieving admin task: %v", err)
+			http.Error(w, "Failed to retrieve admin task", http.StatusInternalServerError)
+			return
+		}
+		if adminTask.UserID.String() == userID {
+			isAuthorized = true
+		}
+	}
+	if !isAuthorized {
+		for _, editorID := range dbTask.TaskEditors {
+			if editorID.String() == userID {
+				isAuthorized = true
+				break
+			}
+		}
+	}
+	if !isAuthorized {
+		http.Error(w, "You do not have access to update this task", http.StatusForbidden)
+		return
+	}
+	// Parse the JSON request body into the parameters struct to get the fields that need to be updated for the task
+	var params parameters
+	if err := json.ReadJSON(r, &params); err != nil {
+		log.Printf("Error parsing request body: %v", err)
+		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	// Set missing fields to their current values in the database to ensure that only the provided fields are updated while the others remain unchanged
+	title := dbTask.Title
+	if params.Title != nil {
+		title = *params.Title
+	}
+	endDate := dbTask.EndDate
+	if params.EndDate != nil {
+		endDate = pgtype.Timestamp{Time: *params.EndDate, Valid: true}
+	}
+	description := dbTask.Description
+	if params.Description != nil {
+		description = *params.Description
+	}
+	priority := dbTask.Priority
+	if params.Priority != nil {
+		priority = *params.Priority
+	}
+	state := dbTask.State
+	if params.State != nil {
+		state = *params.State
+	}
+	tag := dbTask.Tag
+	if params.Tag != nil {
+		tag = *params.Tag
+	}
+	parentID := dbTask.ParentID
+	if params.ParentID != nil {
+		parentID = pgtype.UUID{Bytes: *params.ParentID, Valid: true}
+	}
+	taskEditors := dbTask.TaskEditors
+	if params.TaskEditors != nil {
+		convertedEditors := make([]pgtype.UUID, len(*params.TaskEditors))
+		for i, editor := range *params.TaskEditors {
+			convertedEditors[i] = pgtype.UUID{Bytes: editor, Valid: true}
+		}
+		taskEditors = convertedEditors
+	}
+	// Create a Task with the updated fields and the user ID to pass to the service for updating the task in the database, ensuring that only the provided fields are updated while the others remain unchanged
+	task := Task{
+		ID:          uuid.MustParse(taskID),
+		Title:       title,
+		Description: description,
+		EndDate:     endDate.Time,
+		UserID:      uuid.UUID(dbTask.UserID.Bytes),
+		Priority:    priority,
+		State:       state,
+		Tag:         tag,
+		ParentID:    uuid.UUID(parentID.Bytes),
+		TaskEditors: func() []uuid.UUID {
+			editors := make([]uuid.UUID, len(taskEditors))
+			for i, editor := range taskEditors {
+				editors[i] = uuid.UUID(editor.Bytes)
+			}
+			return editors
+		}(),
+	}
+	// Call the service to update the task in the database with the provided fields, ensuring that only the provided fields are updated while the others remain unchanged
+	updatedTask, err := h.service.UpdateTask(r.Context(), task)
+	if err != nil {
+		log.Printf("Error updating task: %v", err)
+		http.Error(w, "Failed to update task: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Create a response struct to send back to the client with the updated task information
+	response := Task{
+		ID:          uuid.UUID(updatedTask.ID.Bytes),
+		Title:       updatedTask.Title,
+		Description: updatedTask.Description,
+		EndDate:     updatedTask.EndDate.Time,
+		UserID:      uuid.UUID(updatedTask.UserID.Bytes),
+		Priority:    updatedTask.Priority,
+		State:       updatedTask.State,
+		Tag:         updatedTask.Tag,
+		ParentID:    uuid.UUID(updatedTask.ParentID.Bytes),
+		TaskEditors: func() []uuid.UUID {
+			editors := make([]uuid.UUID, len(updatedTask.TaskEditors))
+			for i, editor := range updatedTask.TaskEditors {
+				editors[i] = uuid.UUID(editor.Bytes)
+			}
+			return editors
+		}(),
 	}
 	// Write the response as JSON
 	if err := json.WriteJSON(w, http.StatusOK, response); err != nil {

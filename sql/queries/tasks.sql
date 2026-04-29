@@ -52,6 +52,9 @@ SET title = $2,
     description = $4,
     priority = $5,
     state = $6,
+    tag = $7,
+    task_editors = $8,
+    parent_id = $9,
     updated_at = NOW()
 WHERE id = $1
 RETURNING *;
