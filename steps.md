@@ -323,3 +323,27 @@ Note: This was a bit challenging coz I am used to access config directly and in 
 
 ## 12. Delete a task
 
+1. DeleteTask emthod of svc deletes a task from the database by its ID /internal/tasks/service.go
+2. Add DeleteTask to service interface
+
+3. DeleteTask handles the deletion of a task by its ID, allowing only the owner or editors of the task to perform the deletion, and if the task is a parent collaborative task, it also deletes all associated child collaborative tasks
+3.1 Get the task ID from the URL parameters
+3.2 Validate the task ID
+3.3 Get the user ID from the request context (set by the authentication middleware)
+3.4 Assert the user ID value to a UUID type
+3.5 Convert the user ID to a string for database queries
+3.6 Get the task from the database to check if it exists and to verify the user's access level (owner or editor) for authorization to delete the task
+3.7 Check if the user making the request is the owner of the task
+3.8 If the task is a collaborative task and the user is not the owner, check if they are the admin of the collaborative task (the owner of the parent task) to determine if they are authorized to delete the task
+3.9 If the user is not the owner and not the admin of the collaborative task, check if they are an editor of the task to determine if they are authorized to delete the task
+3.10 If the task is a parent collaborative task, delete all associated child collaborative tasks as well, ensuring that only the owner or admin of the task can perform the deletion and that if the task is a parent collaborative task, all associated child collaborative tasks are also deleted
+3.11 Else Call the service to delete the task from the database
+3.12 Write a success response as JSON
+
+4. set up the tasks routes
+
+```go
+ r.Delete("/tasks/{taskID}", taskHandler.DeleteTask)
+```
+
+Note: While testing the delete ollaborative tasks, I realized that I wasn't fetching all the tasks, the problem was that I had "break" in the loop of the coniction checking for the user Id. I deleted and problem is solved!

@@ -83,6 +83,7 @@ func (app *application) mount() http.Handler {
 		r.Get("/tasks", taskHandler.GetTasks)
 		r.Get("/tasks/collaborative", taskHandler.GetParentsCollaborativeTasks)
 		r.Put("/tasks/{taskID}", taskHandler.UpdateTask)
+		r.Delete("/tasks/{taskID}", taskHandler.DeleteTask)
 
 	})
 	return r

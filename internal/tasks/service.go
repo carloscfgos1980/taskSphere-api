@@ -19,6 +19,7 @@ type Service interface {
 	GetPublicTasks(ctx context.Context) ([]database.GetPublicTasksRow, error)
 	GetParentTasks(ctx context.Context) ([]database.GetParentTasksRow, error)
 	UpdateTask(ctx context.Context, task Task) (database.Task, error)
+	DeleteTask(ctx context.Context, id string) error
 }
 
 // svc defines the struct for the users service
@@ -277,4 +278,30 @@ func (s *svc) UpdateTask(ctx context.Context, task Task) (database.Task, error) 
 		return database.Task{}, err
 	}
 	return updatedTask, nil
+}
+
+// DeleteTask deletes a task from the database by its ID
+func (s *svc) DeleteTask(ctx context.Context, id string) error {
+	// start a transaction
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	// create a new Queries instance with the transaction
+	qtx := s.repo.WithTx(tx)
+	taskID := pgtype.UUID{}
+	err = taskID.Scan(id)
+	if err != nil {
+		return err
+	}
+	err = qtx.DeleteTask(ctx, taskID)
+	if err != nil {
+		return err
+	}
+	// commit the transaction
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	return nil
 }

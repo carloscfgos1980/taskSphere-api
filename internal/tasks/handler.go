@@ -311,17 +311,17 @@ func (h *handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 		// Prepare the response struct with the retrieved collaborative tasks information, including user details and task editors
 
 		// Check if the user making the request is the owner of any of the collaborative tasks or has access to them
+
 		hasAccess := false
 		var response []taskResponse
 		for _, task := range collaborativeTasks {
 			if task.UserID.String() == userID {
 				hasAccess = true
-				break
-			}
-			for _, editor := range task.TaskEditors {
-				if editor.String() == userID {
-					hasAccess = true
-					break
+			} else {
+				for _, editor := range task.TaskEditors {
+					if editor.String() == userID {
+						hasAccess = true
+					}
 				}
 			}
 			var taskEditors []uuid.UUID
@@ -352,6 +352,7 @@ func (h *handler) GetTasks(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "You do not have access to these collaborative tasks", http.StatusForbidden)
 			return
 		}
+		log.Println("length of response", len(response))
 		// Write the retrieved collaborative tasks as JSON response
 		if err := json.WriteJSON(w, http.StatusOK, response); err != nil {
 			http.Error(w, "Failed to write response", http.StatusInternalServerError)
@@ -657,4 +658,91 @@ func (h *handler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to write response", http.StatusInternalServerError)
 		return
 	}
+}
+
+// DeleteTask handles the deletion of a task by its ID, allowing only the owner or editors of the task to perform the deletion, and if the task is a parent collaborative task, it also deletes all associated child collaborative tasks
+func (h *handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
+	// Get the task ID from the URL parameters
+	taskID := chi.URLParam(r, "taskID")
+	// Validate the task ID
+	if _, err := uuid.Parse(taskID); err != nil {
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		return
+	}
+	// Get the user ID from the request context (set by the authentication middleware)
+	userIDValue := r.Context().Value("userID")
+	// Check if the user ID is present in the context
+	if userIDValue == nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Assert the user ID value to a UUID type
+	userUUID, ok := userIDValue.(uuid.UUID)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// Convert the user ID to a string for database queries
+	userID := userUUID.String()
+	// Get the task from the database to check if it exists and to verify the user's access level (owner or editor) for authorization to delete the task
+	dbTask, err := h.service.GetTaskByID(r.Context(), taskID)
+	if err != nil {
+		log.Printf("get task error: %v", err)
+		http.Error(w, "Failed to get task: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Check if the user making the request is the owner of the task
+	isAuthorized := dbTask.UserID.String() == userID
+	if !isAuthorized && dbTask.Tag == "collaborative" && !dbTask.ParentID.Valid {
+		http.Error(w, "You do not have access to delete this task", http.StatusForbidden)
+		return
+	}
+	// If the task is a collaborative task and the user is not the owner, check if they are the admin of the collaborative task (the owner of the parent task) to determine if they are authorized to delete the task
+	if !isAuthorized && dbTask.Tag == "collaborative" {
+		adminTask, err := h.service.GetTaskByID(r.Context(), dbTask.ParentID.String())
+		if err != nil {
+			log.Printf("Error retrieving admin task: %v", err)
+			http.Error(w, "Failed to retrieve admin task", http.StatusInternalServerError)
+			return
+		}
+		if adminTask.UserID.String() == userID {
+			isAuthorized = true
+		}
+	}
+	// If the user is not the owner and not the admin of the collaborative task, check if they are an editor of the task to determine if they are authorized to delete the task
+	if !isAuthorized {
+		http.Error(w, "You do not have access to delete this task", http.StatusForbidden)
+		return
+	}
+	// If the task is a parent collaborative task, delete all associated child collaborative tasks as well, ensuring that only the owner or admin of the task can perform the deletion and that if the task is a parent collaborative task, all associated child collaborative tasks are also deleted
+	isAdmin := false
+	if !dbTask.ParentID.Valid && dbTask.Tag == "collaborative" {
+		isAdmin = true
+	}
+	if isAdmin {
+		collaborativeTasks, err := h.service.GetCollaborativeTasksByParentID(r.Context(), dbTask.ID.String())
+		if err != nil {
+			log.Printf("get collaborative tasks error: %v", err)
+			http.Error(w, "Failed to get collaborative tasks: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		for _, task := range collaborativeTasks {
+			if err := h.service.DeleteTask(r.Context(), task.ID.String()); err != nil {
+				log.Printf("Error deleting collaborative task: %v", err)
+				http.Error(w, "Failed to delete collaborative task: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			json.WriteJSON(w, http.StatusOK, map[string]string{"message": "Collaborative task with ID " + task.ID.String() + " deleted successfully"})
+		}
+	} else {
+		// Call the service to delete the task from the database
+		if err := h.service.DeleteTask(r.Context(), taskID); err != nil {
+			log.Printf("Error deleting task: %v", err)
+			http.Error(w, "Failed to delete task: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// Write a success response as JSON
+		json.WriteJSON(w, http.StatusOK, map[string]string{"message": "Task deleted successfully"})
+	}
+
 }
