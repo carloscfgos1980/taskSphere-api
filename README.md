@@ -38,6 +38,22 @@ go get github.com/carloscfgos1980/taskSphere-api
 go run .
 ```
 
+## ✅ Testing
+
+This project includes unit tests for authentication logic in `internal/auth` and uses `github.com/stretchr/testify/assert` for assertions.
+
+### Run all tests
+
+```bash
+go test ./...
+```
+
+### Run only auth tests (verbose)
+
+```bash
+go test -v ./internal/auth
+```
+
 ## 📖 Usage
 
 ### programs needed to run the api
