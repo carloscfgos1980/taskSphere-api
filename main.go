@@ -61,10 +61,10 @@ func main() {
 	mux.HandleFunc("POST /v2/api/revoke", apiCfg.handlerRevoke)
 
 	mux.HandleFunc("POST /auth/register", apiCfg.handlerUsersCreate)
-	mux.HandleFunc("PUT /v2/api/users", apiCfg.handlerUsersUpdate)
-	mux.HandleFunc("GET /v2/api/users", apiCfg.handlerUsersRetrieve)
+	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate)
+	mux.HandleFunc("GET /api/users", apiCfg.handlerUsersRetrieve)
 
-	mux.HandleFunc("POST /v2/api/tasks", apiCfg.handlerTasksCreate)
+	mux.HandleFunc("POST /api/tasks", apiCfg.handlerTasksCreate)
 	mux.HandleFunc("GET /v2/api/tasks/{taskID}", apiCfg.handlerTasksGet)
 	mux.HandleFunc("GET /v2/api/personal/tasks", apiCfg.handlerTasksGetPersonal)
 	mux.HandleFunc("GET /v2/api/collaborative/tasks/{parentID}", apiCfg.handlerTasksGetCollaborative)
