@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"strings"
+
 	"github.com/carloscfgos1980/taskSphere-api/internal/auth"
 	"github.com/carloscfgos1980/taskSphere-api/internal/database"
 	"github.com/google/uuid"
@@ -65,6 +67,10 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request)
 		Password: hashedPassword,
 	})
 	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			respondWithError(w, http.StatusConflict, "User with this email already exists", err)
+			return
+		}
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
 		return
 	}

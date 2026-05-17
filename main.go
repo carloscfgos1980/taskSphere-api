@@ -56,11 +56,11 @@ func main() {
 	// Set up the HTTP server and routes
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("POST /v2/api/login", apiCfg.handlerLogin)
+	mux.HandleFunc("POST /auth/login", apiCfg.handlerLogin)
 	mux.HandleFunc("POST /v2/api/refresh", apiCfg.handlerRefresh)
 	mux.HandleFunc("POST /v2/api/revoke", apiCfg.handlerRevoke)
 
-	mux.HandleFunc("POST /v2/api/users", apiCfg.handlerUsersCreate)
+	mux.HandleFunc("POST /auth/register", apiCfg.handlerUsersCreate)
 	mux.HandleFunc("PUT /v2/api/users", apiCfg.handlerUsersUpdate)
 	mux.HandleFunc("GET /v2/api/users", apiCfg.handlerUsersRetrieve)
 
