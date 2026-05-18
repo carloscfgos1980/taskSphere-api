@@ -216,7 +216,10 @@ SET title = $2,
     description = $4,
     priority = $5,
     state = $6,
-    updated_at = NOW()
+    updated_at = NOW(),
+    tag = $7,
+    parent_id = $8,
+    task_editors = $9
 WHERE id = $1
 RETURNING id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id, task_editors
 `
@@ -228,6 +231,9 @@ type UpdateTaskParams struct {
 	Description string
 	Priority    string
 	State       string
+	Tag         string
+	ParentID    uuid.NullUUID
+	TaskEditors []uuid.UUID
 }
 
 func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, error) {
@@ -238,6 +244,9 @@ func (q *Queries) UpdateTask(ctx context.Context, arg UpdateTaskParams) (Task, e
 		arg.Description,
 		arg.Priority,
 		arg.State,
+		arg.Tag,
+		arg.ParentID,
+		pq.Array(arg.TaskEditors),
 	)
 	var i Task
 	err := row.Scan(
