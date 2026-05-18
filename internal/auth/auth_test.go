@@ -73,3 +73,25 @@ func TestCheckPriority(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckState(t *testing.T) {
+	tests := []struct {
+		name        string
+		state       string
+		expectError error
+	}{
+		{"valid state", "in progress", nil},
+		{"invalid state", "completed", fmt.Errorf("Invalid state value: %s", "completed")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := CheckState(tt.state)
+			if tt.expectError != nil {
+				assert.EqualError(t, err, tt.expectError.Error(), "CheckState(%q) error should be %v, got %v", tt.state, tt.expectError, err)
+			} else {
+				assert.NoError(t, err, "CheckState(%q) error should be nil, got %v", tt.state, err)
+			}
+		})
+	}
+}
