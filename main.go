@@ -59,8 +59,8 @@ func main() {
 	mux.HandleFunc("GET /health", apiCfg.handlerHealth)
 
 	mux.HandleFunc("POST /auth/login", apiCfg.handlerLogin)
-	mux.HandleFunc("POST /v2/api/refresh", apiCfg.handlerRefresh)
-	mux.HandleFunc("POST /v2/api/revoke", apiCfg.handlerRevoke)
+	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
+	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
 
 	mux.HandleFunc("POST /auth/register", apiCfg.handlerUsersCreate)
 	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate)
@@ -68,10 +68,10 @@ func main() {
 
 	mux.HandleFunc("POST /api/tasks", apiCfg.handlerTasksCreate)
 	mux.HandleFunc("GET /api/tasks", apiCfg.handlerTasksGet)
-	mux.HandleFunc("GET /v2/api/tasks/{taskID}", apiCfg.handlerTasksGet)
+	mux.HandleFunc("GET /api/tasks/{taskID}", apiCfg.handlerGetTaskByID)
 
-	mux.HandleFunc("PUT /v2/api/tasks/{taskID}", apiCfg.handlerTasksUpdate)
-	mux.HandleFunc("DELETE /v2/api/tasks/{taskID}", apiCfg.handlerTasksDelete)
+	mux.HandleFunc("PUT /api/tasks/{taskID}", apiCfg.handlerTasksUpdate)
+	mux.HandleFunc("DELETE /api/tasks/{taskID}", apiCfg.handlerTasksDelete)
 
 	// Start the HTTP server
 	srv := &http.Server{
