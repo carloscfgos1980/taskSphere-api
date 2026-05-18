@@ -75,17 +75,17 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusBadRequest, "Description is required", fmt.Errorf("description is required"))
 		return
 	}
-	priority, err := CheckPriority(params.Priority)
+	priority, err := auth.CheckPriority(params.Priority)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-	state, err := CheckState(params.State)
+	state, err := auth.CheckState(params.State)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
 	}
-	tag, err := CheckTag(params.Tag)
+	tag, err := auth.CheckTag(params.Tag)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
@@ -111,37 +111,4 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 
 	// Respond with the created task's information, including its editors
 	respondWithJSON(w, http.StatusCreated, dbTask)
-}
-
-func CheckPriority(priority string) (resultPriority string, err error) {
-	switch priority {
-	case "":
-		return "medium", nil
-	case "low", "medium", "high", "urgent":
-		return priority, nil
-	default:
-		return "", fmt.Errorf("Invalid priority value: %s", priority)
-	}
-}
-
-func CheckState(state string) (resultState string, err error) {
-	switch state {
-	case "":
-		return "pending", nil
-	case "pending", "in progress", "done", "cancelled":
-		return state, nil
-	default:
-		return "", fmt.Errorf("Invalid state value: %s", state)
-	}
-}
-
-func CheckTag(tag string) (resultTag string, err error) {
-	switch tag {
-	case "":
-		return "private", nil
-	case "private", "collaborative", "public":
-		return tag, nil
-	default:
-		return "", fmt.Errorf("Invalid tag value: %s", tag)
-	}
 }
