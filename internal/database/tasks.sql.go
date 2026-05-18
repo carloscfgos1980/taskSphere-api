@@ -28,8 +28,7 @@ VALUES (
     $7,
     $8,
     $9
-)
-RETURNING id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id, task_editors
+) RETURNING id, created_at, updated_at, user_id, title, end_date, description, priority, tag, state, parent_id, task_editors
 `
 
 type CreateTaskParams struct {
@@ -87,7 +86,7 @@ const getCollaborativeTasksByParentID = `-- name: GetCollaborativeTasksByParentI
 SELECT u.email, u.username, t.id, t.created_at, t.updated_at, t.user_id, t.title, t.end_date, t.description, t.priority, t.tag, t.state, t.parent_id, t.task_editors
 FROM tasks t
 JOIN users u ON t.user_id = u.id
-WHERE t.parent_id = $1 OR t.id = $1
+WHERE (t.parent_id = $1 OR t.id = $1) AND t.tag = 'collaborative'
 ORDER BY t.created_at ASC
 `
 

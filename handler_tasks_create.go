@@ -108,7 +108,21 @@ func (cfg *apiConfig) handlerTasksCreate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create task", err)
 		return
 	}
+	response := Task{
+		ID:          dbTask.ID,
+		CreatedAt:   dbTask.CreatedAt,
+		UpdatedAt:   dbTask.UpdatedAt,
+		UserID:      dbTask.UserID,
+		Title:       dbTask.Title,
+		EndDate:     dbTask.EndDate,
+		Description: dbTask.Description,
+		Priority:    dbTask.Priority,
+		Tag:         dbTask.Tag,
+		State:       dbTask.State,
+		ParentID:    dbTask.ParentID.UUID,
+		TaskEditors: dbTask.TaskEditors,
+	}
 
 	// Respond with the created task's information, including its editors
-	respondWithJSON(w, http.StatusCreated, dbTask)
+	respondWithJSON(w, http.StatusCreated, response)
 }
