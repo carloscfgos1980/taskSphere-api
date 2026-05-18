@@ -42,16 +42,27 @@ go run .
 
 This project includes unit tests for authentication logic in `internal/auth` and uses `github.com/stretchr/testify/assert` for assertions.
 
+Integration tests are also available for key HTTP routes and run against a real Postgres database.
+
 ### Run all tests
 
 ```bash
 go test ./...
 ```
 
-### Run only auth tests (verbose)
+### Run unit tests only (auth package)
 
 ```bash
 go test -v ./internal/auth
+```
+
+### Run integration tests
+
+Integration tests require `DB_URL` to be set (for example in `.env`).
+
+```bash
+go test -run TestHandlerUsersCreateIntegration -v .
+go test -run TestHandlerTasksCreateIntegration -v .
 ```
 
 ## 📖 Usage

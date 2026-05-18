@@ -95,3 +95,27 @@ func TestCheckState(t *testing.T) {
 		})
 	}
 }
+
+func TestCheckTag(t *testing.T) {
+	tests := []struct {
+		name        string
+		tag         string
+		expectError error
+	}{
+		{"valid private tag", "private", nil},
+		{"valid collaborative tag", "collaborative", nil},
+		{"valid public tag", "public", nil},
+		{"invalid tag", "shared", fmt.Errorf("Invalid tag value: %s", "shared")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := CheckTag(tt.tag)
+			if tt.expectError != nil {
+				assert.EqualError(t, err, tt.expectError.Error(), "CheckTag(%q) error should be %v, got %v", tt.tag, tt.expectError, err)
+			} else {
+				assert.NoError(t, err, "CheckTag(%q) error should be nil, got %v", tt.tag, err)
+			}
+		})
+	}
+}
