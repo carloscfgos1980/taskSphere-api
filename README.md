@@ -12,6 +12,7 @@
 
 * Chi framework
 * User registration and login (secure authentication) - JWT token and refresh token implemented
+* Runtime metrics endpoint for API response times, entity counts, deployment details and architecture notes
 * Tasks created could be tagged as private, public or collaborative
 * Support for group (collaborative) tasks
 * A task can have a owner and multiples assignees (taskEditors)
@@ -77,12 +78,58 @@ go cmd/*.go
 * Only task_editors assigned by the author of the taks can modified the task
 * Only the author of the task can errased
 
+### metrics
+
+* Endpoint: `GET /metrics`
+* Purpose: expose runtime and API telemetry in JSON format
+* Main fields:
+	* `api_response_times_ms`: average and last request duration in milliseconds
+	* `requests`: total number of served requests and status class counters (`2xx`, `4xx`, `5xx`)
+	* `counts`: current `users` and `tasks` totals from the database
+	* `deployment`: bind address, environment (`APP_ENV`), Go version and server start time
+	* `architecture`: key implementation decisions (router, auth strategy, database stack, service layering)
+
+Example:
+
+```json
+{
+	"service": "taskSphere-api",
+	"uptime_seconds": 420.51,
+	"api_response_times_ms": {
+		"average": 6.1,
+		"last": 4.8
+	},
+	"requests": {
+		"total": 112,
+		"status_2xx": 103,
+		"status_4xx": 7,
+		"status_5xx": 2
+	},
+	"counts": {
+		"users": 15,
+		"tasks": 87
+	},
+	"deployment": {
+		"bind_address": ":8080",
+		"app_env": "dev",
+		"go_version": "go1.24.0",
+		"started_at": "2026-06-02T20:10:00Z"
+	},
+	"architecture": {
+		"router": "chi",
+		"auth": "JWT access token + refresh token",
+		"database": "PostgreSQL via pgx + sqlc",
+		"service_structure": "handler -> service -> database"
+	}
+}
+```
+
 ## 🤝 Contributing
 
 ### Clone the repo
 
 ```bash
-git clone github.com/carloscfgos1980/taskSphere-api
+git clone -b chi_framework https://github.com/carloscfgos1980/taskSphere-api.git
 cd taskSphere-api
 ```
 
